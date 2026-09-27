@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ann-core"
+version = "4.0.0"
+description = "Moteur logique et IA d'Arrera Neuron Network (Headless Core)"
+readme = "readme.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Arrera Software" }
+]
+dependencies = [
+    "requests",
+    "gTTS",
+    "translate",
+    "python-docx",
+    "odfpy",
+    "openpyxl",
+    "PyGithub",
+    "pyperclip",
+    "websocket-client",
+    "websockets",
+    "numpy",
+    "sounddevice",
+    "soundfile",
+    "piper-tts",
+    "speechRecognition",
+    "meteofrance_api",
+    "pyradios",
+    "python-vlc",
+    "llama_cpp_python",
+    "feedparser",
+    "yt_dlp",
+    "winsdk ; sys_platform == 'win32'",
+    "pyobjc-framework-CoreLocation ; sys_platform == 'darwin'",
+    "pydbus ; sys_platform == 'linux'"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "brain*",
+    "config*",
+    "fnc*",
+    "gestionnaire*",
+    "librairy*",
+    "neuron*",
+    "objet*",
+    "keyword*",
+    "language*"
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.txt"]
