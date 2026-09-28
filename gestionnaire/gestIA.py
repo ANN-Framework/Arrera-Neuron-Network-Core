@@ -1,4 +1,5 @@
 import json
+import os
 import queue
 import threading
 from gestionnaire.gestion import gestionnaire
@@ -28,6 +29,8 @@ class gestIA :
                                  "mail_creation":"prompt_mail_creation.txt",
                                  "mail_correction":"prompt_mail_correction.txt",
                                  "mail_reponse":"prompt_mail_reponse.txt"}
+
+        self.__additional_instructions: list[str] = []
 
         # Gestion de la file d'attente et du multi-threading pour l'IA
         self.__task_queue = queue.Queue()
@@ -152,6 +155,54 @@ class gestIA :
              else :
                  return False
         else :
+            return False
+
+    def load_additional_instructions(self, prompt_text_or_path: str) -> bool:
+        """
+        Permet d'injecter des instructions ou des règles système supplémentaires dans le prompt
+        principal de l'IA (par exemple les définitions d'interfaces GUI ou règles de dialogue).
+
+        :param prompt_text_or_path: Chaîne contenant directement les instructions ou chemin vers un fichier texte (.txt).
+        :return: True si l'instruction a été ajoutée (et appliquée si l'IA est active), False sinon.
+        """
+        if not prompt_text_or_path or not isinstance(prompt_text_or_path, str):
+            return False
+
+        content = ""
+        # 1. Vérifie si l'argument est un chemin de fichier existant
+        if os.path.isfile(prompt_text_or_path):
+            try:
+                with open(prompt_text_or_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+            except Exception as e:
+                print(f"Erreur lecture fichier instructions supplémentaires ({prompt_text_or_path}) : {e}")
+                return False
+        else:
+            # 2. Sinon, on considère que c'est directement une chaîne de texte
+            content = prompt_text_or_path.strip()
+
+        if not content:
+            return False
+
+        # 3. Évite les doublons
+        if content not in self.__additional_instructions:
+            self.__additional_instructions.append(content)
+
+        # 4. Si l'IA est déjà active, recharger l'instruction système
+        if self.__ia_mode_enabled and self.__ia_loader is not None:
+            return self.__submit_task(self.__internal_reload_main_prompt)
+
+        return True
+
+    def __internal_reload_main_prompt(self) -> bool:
+        try:
+            self.__ia_loader.unload_help()
+            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
+                self.__ia_mode_enabled = True
+                return True
+            return False
+        except Exception as e:
+            print(f"Erreur mise à jour instructions système IA : {e}")
             return False
 
     def send_request_ia(self, requette: str):
@@ -390,6 +441,9 @@ class gestIA :
             """
         prompt += self.__gestionnaire.getGestFNC().get_prompt()
         prompt += self.__gestionnaire.getGestGUI().get_prompt()
+
+        for add_prompt in self.__additional_instructions:
+            prompt += "\n" + add_prompt
 
         prompt += """
             Règles strictes :

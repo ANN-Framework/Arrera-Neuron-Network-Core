@@ -1,3 +1,4 @@
+from gestionnaire.IGestGui import IGestGui
 from librairy.dectectionOS import*
 from librairy.network import*
 from librairy.travailJSON import jsonWork
@@ -18,7 +19,7 @@ class gestionnaire:
         from gestionnaire.gestHistorique import gestHistorique
         from gestionnaire.gestSTR import gestSTR
         from gestionnaire.gestFNC import gestFNC
-        from gestionnaire.gestGUI import gestGUI
+        from gestionnaire.IGestGui import IGestGui
         from gestionnaire.gestUserSetting import gestUserSetting
         from gestionnaire.gestKeyword import gestKeyword
         from gestionnaire.gestIA import gestIA
@@ -53,7 +54,7 @@ class gestionnaire:
         self.__gestSTR = gestSTR()
 
         self.__fnc = gestFNC(self)
-        self.__gui = gestGUI(self)
+        self.__gui = None
 
         self.__gestHist = gestHistorique(self)
         self.__gestNeuron = gestNeuron(self)
@@ -74,6 +75,12 @@ class gestionnaire:
                 return self.__gestLang.bootNoHist()
         else :
             return self.__gestLang.bootNoHist()
+
+    def set_gui_manager(self, gui_manager:IGestGui):
+        self.__gui = gui_manager
+
+    def get_gui_manager(self):
+        return self.__gui
 
     def getConfigFile(self):
         return self.__config
