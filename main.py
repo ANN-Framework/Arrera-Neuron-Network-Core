@@ -1,4 +1,4 @@
-from src.GUIOpale import GUIOpale
+from src.opale import GUIOpale
 
 def main():
     GUIOpale().active()

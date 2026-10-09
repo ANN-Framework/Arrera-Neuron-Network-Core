@@ -1,6 +1,6 @@
 # ArreraNeuronNetwork Integration Guide
 
-This document explains how to integrate and use the ArreraNeuronNetwork in a Python project, based on the implementation found in `src/GUIOpale.py`.
+This document explains how to integrate and use the ArreraNeuronNetwork in a Python project, based on the implementation found in `../src/opale.py`.
 
 ## Overview
 

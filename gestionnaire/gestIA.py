@@ -440,7 +440,9 @@ class gestIA :
             Voici la liste stricte des actions autorisées selon la configuration active :
             """
         prompt += self.__gestionnaire.getGestFNC().get_prompt()
-        prompt += self.__gestionnaire.getGestGUI().get_prompt()
+        gui = self.__gestionnaire.getGestGUI()
+        if gui is not None:
+            prompt += gui.get_prompt()
 
         for add_prompt in self.__additional_instructions:
             prompt += "\n" + add_prompt

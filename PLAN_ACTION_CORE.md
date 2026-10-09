@@ -165,7 +165,7 @@ include = [
 ### Phase 2 : Configuration du projet `ann-tkinter`
 1. **Conserver dans `ann-tkinter`** :
    * Le dossier `gui/` (toutes les fenêtres Tkinter).
-   * Le fichier `src/GUIOpale.py` (ou à la racine).
+   * Le fichier `src/opale.py` (ou à la racine).
    * L'implémentation concrète `TkinterGuiManager` (l'ancien `gestGUI.py` adapté pour implémenter l'interface abstraite).
    * Les prompts spécifiques à l'interface dans `instruction_ia/`.
 2. **Supprimer de `ann-tkinter` les doublons du Core** :
