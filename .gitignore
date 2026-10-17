@@ -11,3 +11,6 @@ log/
 tmp/
 dist/
 build/
+*.egg-info/
+.agents/
+.gemini/
