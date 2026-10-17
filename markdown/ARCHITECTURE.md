@@ -47,7 +47,7 @@ Modules implementing the various functionalities of the assistant.
 Management modules and coordinators.
 - `gestion.py`: Global manager.
 - `gestFNC.py`: Function manager.
-- `gestGUI.py`: GUI manager.
+- `HeadlessGuiManager.py`: GUI manager.
 - `gestHistorique.py`: Interaction history management.
 - `gestIA.py`: Artificial Intelligence management.
 - `gestKeyword.py`: Keyword management for recognition.

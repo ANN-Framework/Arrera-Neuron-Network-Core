@@ -42,11 +42,9 @@ class core_neuron(neuronBase):
                     reponse = self.__gestIA.generate_final_response(requette_raw, donnees)
                     self._valeurOut = 1
                     self._listSortie = [reponse, ""]
-                
+
             elif mots[0] == "ACTU":
                 theme = mots[1] if len(mots) > 1 else ""
-                #print(f"[Neuron Core] Action: ACTUALITÉ")
-                # Parse theme
                 if theme == "TOUT":
                     target = "actu_all"
                 elif theme == "TECH":
@@ -62,16 +60,19 @@ class core_neuron(neuronBase):
                 else:
                     target = "actu_all"
 
-                if self._gestionnaire.getGestGUI().setGUIActive(target):
+                if self._gestionnaire.has_gui() and self._gestionnaire.getGestGUI().setGUIActive(target):
                     self._valeurOut = 5
                     self._listSortie = ["", ""]
-                else :
+                else:
+                    fnc_actu = self._gestFNC.getFNCActu()
+                    if fnc_actu and fnc_actu.setActu(3):
+                        donnees = fnc_actu.get_actu_say() or str(fnc_actu.getActu())
+                    else:
+                        donnees = "Impossible de récupérer les actualités pour le moment."
                     self._valeurOut = 1
-                    reponse = self.__gestIA.generate_final_response(requette_raw,
-                                                                    "Informe l'utilisateur qu'il est impossible d'ouvrir l'interface des actualités.")
+                    reponse = self.__gestIA.generate_final_response(requette_raw, donnees)
                     self._listSortie = [reponse, ""]
 
-                
             elif mots[0] == "RADIO":
                 nom_radio = " ".join(mots[1:]) if len(mots) > 1 else ""
                 if self.__part_radio(mots):
@@ -88,25 +89,26 @@ class core_neuron(neuronBase):
                     reponse = self.__gestIA.generate_final_response(requette_raw, donnees)
                     self._valeurOut = 1
                     self._listSortie = [reponse, ""]
-                    
+
             elif mots[0] == "HEURE":
                 heure_str = datetime.now().strftime("%H:%M")
                 reponse = self.__gestIA.generate_final_response(requette_raw, heure_str)
                 self._valeurOut = 1
                 self._listSortie = [reponse, ""]
-                
+
             elif mots[0] == "MINUTEUR":
-                if self._gestionnaire.getGestGUI().setGUIActive("minuteur"):
+                if self._gestionnaire.has_gui() and self._gestionnaire.getGestGUI().setGUIActive("minuteur"):
                     self._valeurOut = 5
                     self._listSortie = ["", ""]
-                else :
-                    donnees = f"PAS OK Interface {mots[0]} introuvable"
+                else:
+                    donnees = "Mode sans interface graphique : précise une durée en secondes pour démarrer un minuteur."
                     reponse = self.__gestIA.generate_final_response(requette_raw, donnees)
                     self._valeurOut = 1
                     self._listSortie = [reponse, ""]
+
             elif mots[0] == "GUI":
                 nom_gui = mots[1].lower() if len(mots) > 1 else ""
-                
+
                 mapping = {
                     "calculatrice": "calculatrice_normal",
                     "lecture": "lecture",
@@ -121,15 +123,22 @@ class core_neuron(neuronBase):
 
                 if nom_gui == "tache" and self._gestionnaire.getGestFNC().getFNCWork().getEtatProject():
                     nom_gui = "tache_projet"
-                
+
                 target_gui = mapping.get(nom_gui, nom_gui)
-                
-                if self._gestionnaire.getGestGUI().setGUIActive(target_gui):
-                    # gestGUI.py handles the AI generation now.
+
+                if self._gestionnaire.has_gui() and self._gestionnaire.getGestGUI().setGUIActive(target_gui):
                     self._valeurOut = 5
                     self._listSortie = ["", ""]
                 else:
-                    donnees = f"PAS OK Interface {nom_gui} introuvable"
+                    # Fallback Headless pour Tâches et Agenda
+                    if nom_gui == "tache":
+                        taches = self._gestFNC.getFNCTask().getNoFinishTask()
+                        donnees = f"Tâches en cours : {', '.join(taches)}" if taches else "Aucune tâche en cours."
+                    elif nom_gui == "agenda":
+                        events = self._gestFNC.getFNCCalendar().checkDateDayEvent()
+                        donnees = f"Événements du jour : {', '.join(events)}" if events else "Aucun événement prévu aujourd'hui."
+                    else:
+                        donnees = f"Aucune interface graphique n'est connectée pour afficher {nom_gui}, mais tu peux me demander d'exécuter l'action directement."
                     self._valeurOut = 1
                     reponse = self.__gestIA.generate_final_response(requette_raw, donnees)
                     self._listSortie = [reponse, ""]

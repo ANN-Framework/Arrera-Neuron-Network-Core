@@ -1,4 +1,5 @@
 from gestionnaire.IGestGui import IGestGui
+from gestionnaire.HeadlessGuiManager import HeadlessGuiManager
 from librairy.dectectionOS import*
 from librairy.network import*
 from librairy.travailJSON import jsonWork
@@ -19,7 +20,6 @@ class gestionnaire:
         from gestionnaire.gestHistorique import gestHistorique
         from gestionnaire.gestSTR import gestSTR
         from gestionnaire.gestFNC import gestFNC
-        from gestionnaire.IGestGui import IGestGui
         from gestionnaire.gestUserSetting import gestUserSetting
         from gestionnaire.gestKeyword import gestKeyword
         from gestionnaire.gestIA import gestIA
@@ -27,6 +27,7 @@ class gestionnaire:
         # Importation des librairies
         from librairy.arrera_voice import CArreraVoice
         from librairy.arrera_date import CArreraDate
+        from librairy.resource_lib import resource_lib
         # Declaration des librairies
         self.__detecteurOS = OS()
         self.__network = network()
@@ -34,7 +35,7 @@ class gestionnaire:
         # Fichier JSON
         self.__config = confAssistant
         self.__userConf = gestUserSetting(self)
-        self.__fichierFete = jsonWork("config/listFete.json")
+        self.__fichierFete = jsonWork(resource_lib().resource_path("config/listFete.json"))
         self.__arrVoice = CArreraVoice(self)
         # Initialisation des tout les gestionnaires
         self.__gestHist = gestHistorique(self)
@@ -54,7 +55,7 @@ class gestionnaire:
         self.__gestSTR = gestSTR()
 
         self.__fnc = gestFNC(self)
-        self.__gui = None
+        self.__gui = HeadlessGuiManager(self)
 
         self.__gestHist = gestHistorique(self)
         self.__gestNeuron = gestNeuron(self)
@@ -76,11 +77,19 @@ class gestionnaire:
         else :
             return self.__gestLang.bootNoHist()
 
-    def set_gui_manager(self, gui_manager:IGestGui):
+    def set_gui_manager(self, gui_manager: IGestGui):
         self.__gui = gui_manager
+        if self.__gestIA is not None and self.__gestIA.get_ia_is_enable():
+            self.__gestIA.reload_main_prompt()
 
     def get_gui_manager(self):
         return self.__gui
+
+    def has_gui(self) -> bool:
+        """
+        Indique si une interface graphique réelle est connectée.
+        """
+        return self.__gui is not None and self.__gui.is_gui_available()
 
     def getConfigFile(self):
         return self.__config
@@ -135,7 +144,7 @@ class gestionnaire:
 
     def getGestGUI(self):
         """
-        Methode qui retourne l'objet gestGUI
+        Methode qui retourne l'objet gestGUI / IGestGui
         """
         return self.__gui
 

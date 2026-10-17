@@ -1,47 +1,39 @@
-from fnc.fncBase import fncBase,gestionnaire
+from fnc.fncBase import fncBase, gestionnaire
 import webbrowser as wb
-# Codehelp
 from objet.CHsearchDoc import CHsearchDoc
-from gui.codehelp.CHGithub import CHGithub
-from gui.codehelp.CHLibrairy import CHLibrairy
-from gui.codehelp.CHOrgraVarriable import CHOrgraVarriable
-from gui.codehelp.CCHcolorSelector import CCHcolorSelector
 
-class fncCodehelp(fncBase) :
-    def __init__(self,gestionnaire:gestionnaire) -> None:
+
+class fncCodehelp(fncBase):
+    def __init__(self, gestionnaire: gestionnaire) -> None:
         super().__init__(gestionnaire)
-        self.__orgaVar = CHOrgraVarriable(gestionnaire)
         self.__searchDoc = CHsearchDoc()
-        self.__colorSelector = CCHcolorSelector(gestionnaire)
-        self.__githubObjet = CHGithub(gestionnaire)
-        self.__librairyCodehelp = CHLibrairy(gestionnaire)
         self.__guiLaunch = ""
 
-    def searchDocInDevDoc(self, recherche:str)->bool:
+    def searchDocInDevDoc(self, recherche: str) -> bool:
         if self._gestionnaire.getNetworkObjet().getEtatInternet():
             return self.__searchDoc.searchDevDoc(recherche)
-        else :
+        else:
             return False
 
-    def searchDocInMicrosoft(self,recherche:str)->bool:
+    def searchDocInMicrosoft(self, recherche: str) -> bool:
         if self._gestionnaire.getNetworkObjet().getEtatInternet():
             return self.__searchDoc.searchMicrosoft(recherche)
-        else :
+        else:
             return False
 
-    def searchDocInPython(self,recherche:str)->bool:
+    def searchDocInPython(self, recherche: str) -> bool:
         if self._gestionnaire.getNetworkObjet().getEtatInternet():
             return self.__searchDoc.searchPython(recherche)
-        else :
+        else:
             return False
 
     def searchGithub(self, requette: str):
-        if self._gestionnaire.getNetworkObjet().getEtatInternet():
-            return self.__githubObjet.search(requette)
-        else :
+        if self._gestionnaire.getNetworkObjet().getEtatInternet() and requette != "":
+            return wb.open(f"https://github.com/search?q={requette}")
+        else:
             return False
 
-    def setGUICodeHelp(self,gui:str):
+    def setGUICodeHelp(self, gui: str):
         """
         GUIColorSelector
         GUIGithubGestion
@@ -49,41 +41,30 @@ class fncCodehelp(fncBase) :
         GUIOrgaVar
         """
         self.__guiLaunch = gui
+        self._gestionnaire.getGestGUI().setGUIActive(gui)
 
     def launchGui(self):
-        """
-        GUIColorSelector
-        GUIGithubGestion
-        GUILibrairy
-        GUIOrgaVar
-        """
-        if self.__guiLaunch == "GUIColorSelector":
-            self.__colorSelector.active()
-            return True
-        elif self.__guiLaunch == "GUIGithubGestion":
-            self.__githubObjet.active()
-            return True
-        elif self.__guiLaunch == "GUILibrairy":
-            self.__librairyCodehelp.active()
-            return True
-        elif self.__guiLaunch == "GUIOrgaVar":
-            self.__orgaVar.active()
-            return True
-        else :
-            return False
-
+        return self._gestionnaire.getGestGUI().launch_gui()
 
     def openSiteGithub(self):
         wb.open("https://github.com/")
 
     def openGUIColorSelector(self):
-        self.__colorSelector.active()
+        if self._gestionnaire.getGestGUI().setGUIActive("GUIColorSelector"):
+            return self._gestionnaire.getGestGUI().launch_gui()
+        return False
 
     def openGUIGithubGestion(self):
-        self.__githubObjet.active()
+        if self._gestionnaire.getGestGUI().setGUIActive("GUIGithubGestion"):
+            return self._gestionnaire.getGestGUI().launch_gui()
+        return False
 
     def openGUILibrairy(self):
-        self.__librairyCodehelp.active()
+        if self._gestionnaire.getGestGUI().setGUIActive("GUILibrairy"):
+            return self._gestionnaire.getGestGUI().launch_gui()
+        return False
 
     def openGUIOrgaVar(self):
-        self.__orgaVar.active()
+        if self._gestionnaire.getGestGUI().setGUIActive("GUIOrgaVar"):
+            return self._gestionnaire.getGestGUI().launch_gui()
+        return False

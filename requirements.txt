@@ -1,7 +1,5 @@
 setuptools
 wheel
-arrera-tk
-customtkinter
 yt_dlp
 requests
 gTTS
@@ -13,7 +11,6 @@ PyGithub
 pyperclip
 websocket-client
 websockets
-pillow
 numpy
 sounddevice
 soundfile
@@ -28,4 +25,3 @@ feedparser
 winsdk ; sys_platform == 'win32'
 pyobjc-framework-CoreLocation ; sys_platform == 'darwin'
 pydbus ; sys_platform == 'linux'
-PyGObject; sys_platform == 'linux'

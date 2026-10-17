@@ -52,14 +52,17 @@ class interface(neuronBase):
 
             self._valeurOut = 0
             self._listSortie = [self._gestIA.generate_final_response("METEO",donnees),""]
-        elif self._keyword.checkInterface(requette,"task"):
+
+        elif self._keyword.checkInterface(requette, "task"):
             self._valeurOut = 1
-            self._listSortie = [self._gestIA.generate_final_response("OUVRE INTERFACE TACHE",""), ""]
-            self._gestGUI.activeTache()
-        elif self._keyword.checkInterface(requette,"agenda"):
+            self._listSortie = [self._gestIA.generate_final_response("OUVRE INTERFACE TACHE", ""), ""]
+            self._gestionnaire.getGestGUI().activeTache()
+
+        elif self._keyword.checkInterface(requette, "agenda"):
             self._valeurOut = 1
-            self._listSortie = [self._gestIA.generate_final_response("OUVRE INTERFACE AGENDA",""), ""]
-            self._gestGUI.activeAgenda()
+            self._listSortie = [self._gestIA.generate_final_response("OUVRE INTERFACE AGENDA", ""), ""]
+            self._gestionnaire.getGestGUI().activeAgenda()
+
         elif self._keyword.checkInterface(requette,"modeone"):
             self._valeurOut = 1
             name = requette.replace(self._keyword.getListKeyword("interface","modeone")[0],"").strip()

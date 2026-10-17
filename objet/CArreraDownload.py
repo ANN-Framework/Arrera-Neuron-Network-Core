@@ -1,5 +1,4 @@
 import yt_dlp
-from tkinter import filedialog
 
 class CArreraDownload :
     def __init__(self):
@@ -20,35 +19,19 @@ class CArreraDownload :
             return True
         else :
             return False
-    
-    def setDownloadFolder(self):
-        folder = ""
-        folder = filedialog.askdirectory(title="Dossier de telechargement")
-        if (folder == ""):
+
+    def setDownloadFolderDur(self, folder: str):
+        if folder == "":
             self.__downloadFolderSet = False
             return False
-        else :
+        else:
             self.__downloadFolderSet = True
             self.__ydlOpts = {
                 'format': '',  # Sélectionne la meilleure qualité disponible
-                'outtmpl': folder+"/"+ '%(title)s.%(ext)s',  # Définit le chemin de sortie
+                'outtmpl': folder + "/" + '%(title)s.%(ext)s',  # Définit le chemin de sortie
                 'quiet': True,  # Désactive les messages de la console
                 'no_warnings': True,  # Supprime les avertissements
-            }   
-            return True
-    
-    def setDownloadFolderDur(self,folder:str):
-        if (folder == ""):
-            self.__downloadFolderSet = False
-            return False
-        else :
-            self.__downloadFolderSet = True
-            self.__ydlOpts = {
-                'format': '',  # Sélectionne la meilleure qualité disponible
-                'outtmpl': folder+"/"+ '%(title)s.%(ext)s',  # Définit le chemin de sortie
-                'quiet': True,  # Désactive les messages de la console
-                'no_warnings': True,  # Supprime les avertissements
-            }   
+            }
             return True
     
     def setURL(self,url:str):

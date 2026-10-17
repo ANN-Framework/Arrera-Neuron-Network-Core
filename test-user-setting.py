@@ -165,7 +165,8 @@ def main():
                 match nb:
                     case 1:
                         logiciel = input("Nom du logiciel : ")
-                        if user.setSoft(logiciel):
+                        path = input("Chemin du logiciel : ")
+                        if user.setSoft(logiciel, path):
                             print("Logiciel ajouté avec succès.")
                         else:
                             print("Erreur lors de l'ajout du logiciel ou le logiciel existe déjà.")
@@ -250,7 +251,8 @@ def main():
                         print("Veuillez entrer un nombre valide.")
                 match nb:
                     case 1:
-                        if user.setWorkFolder():
+                        folder = input("Chemin du dossier de travail : ")
+                        if user.setWorkFolder(folder):
                             print("Dossier ajouté avec succès.")
                         else:
                             print("Erreur lors de l'ajout du dossier ou le dossier existe déjà.")
@@ -273,7 +275,8 @@ def main():
                         print("Veuillez entrer un nombre valide.")
                 match nb:
                     case 1:
-                        if user.setVideoDownloadFolder():
+                        folder = input("Chemin du dossier video : ")
+                        if user.setVideoDownloadFolder(folder):
                             print("Dossier ajouté avec succès.")
                         else:
                             print("Erreur lors de l'ajout du dossier ou le dossier existe déjà.")

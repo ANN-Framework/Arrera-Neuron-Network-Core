@@ -9,8 +9,8 @@ class fncArreraVideoDownload(fncBase) :
     def refreshDirectory(self):
         emplacement = self._gestionnaire.getEmplacementDownload()
         if emplacement == "":
-            return self.__arrDownload.setDownloadFolder()
-        else :
+            return False
+        else:
             return self.__arrDownload.setDownloadFolderDur(emplacement)
 
     def setMode(self,mode:int):

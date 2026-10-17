@@ -1,6 +1,6 @@
 # 🧪 Protocole de Test - Assistant Arrera (Opale)
 
-Ce document récapitule les commandes et phrases de test à envoyer à l'assistant pour valider l'ensemble des fonctionnalités du système (**`core_neuron`**, **`IARouter`**, **`gestGUI`** et **`gestFNC`**).
+Ce document récapitule les commandes et phrases de test à envoyer à l'assistant pour valider l'ensemble des fonctionnalités du système (**`core_neuron`**, **`IARouter`**, **`HeadlessGuiManager`** et **`gestFNC`**).
 
 ---
 
@@ -18,7 +18,7 @@ Ce document récapitule les commandes et phrases de test à envoyer à l'assista
 
 ---
 
-## 🖥️ 2. Ouverture des Interfaces Graphiques (`gestGUI`)
+## 🖥️ 2. Ouverture des Interfaces Graphiques (`HeadlessGuiManager`)
 
 | Interface | Phrase à envoyer | Résultat attendu | Validé |
 |---|---|---|:---:|

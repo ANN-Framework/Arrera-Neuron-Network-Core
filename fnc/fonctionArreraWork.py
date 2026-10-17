@@ -1,6 +1,4 @@
 from fnc.fonctionTache import *
-from tkinter import filedialog
-from tkinter.messagebox import *
 from objet.arreradocument import *
 from objet.arreratableur import *
 from librairy.travailJSON import *
@@ -45,24 +43,8 @@ class fncArreraWork(fncBase):
 
     # Partie Tableur
 
-    def openTableur(self):
-        if not self.__tableurOpen:
-            # Demande de l'emplacement du fichier
-            showinfo("Work", "Choisissez votre fichier exel")
-            emplacementFile = filedialog.askopenfilename(
-                defaultextension='.xlsx',
-                filetypes=[("Fichiers Excel", "*.xlsx")])
-            self.__fileTableur = emplacementFile
-            if emplacementFile == "":
-                showwarning("Work", "Aucun fichier selectionner")
-                return False
-            else:
-                self.__objTableur = CArreraTableur(emplacementFile)
-                showinfo("Work", "Exel ouvert")
-                self.__tableurOpen = True
-                return True
-        else:
-            return False
+    def openTableur(self, emplacementFile: str = ""):
+        return self.openTableurDirectly(emplacementFile)
 
     def closeTableur(self):
         if self.__tableurOpen:
@@ -222,26 +204,8 @@ class fncArreraWork(fncBase):
 
     # Partie Word
 
-    def openWord(self):
-        if not self.__wordOpen:
-            # Demande de l'emplacement du fichier
-            showinfo("Work", "Choisissez votre fichier word")
-            emplacementFile = filedialog.askopenfilename(
-                defaultextension='.docx',
-                filetypes=[('Tout les fichier', '*.*'),
-                           ('Fichiers Word', '*.docx'),
-                           ("Texte OpenDocument", "*.odt")])
-            self.__fileWord = emplacementFile
-            if emplacementFile == "":
-                showwarning("Work", "Aucun fichier selectionner")
-                return False
-            else:
-                self.__objWord = CArreraDocx(emplacementFile)
-                showinfo("Work", "Word ouvert")
-                self.__wordOpen = True
-                return True
-        else:
-            return False
+    def openWord(self, emplacementFile: str = ""):
+        return self.openWordDirectly(emplacementFile)
 
     def openWordDirectly(self, file: str):
         if self.__wordOpen == False and file != "":

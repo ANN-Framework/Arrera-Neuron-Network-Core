@@ -68,3 +68,8 @@ class IGestGui:
     @abstractmethod
     def activeMail(self):
         pass
+
+    @abstractmethod
+    def is_gui_available(self) -> bool:
+        """Indique si une interface graphique réelle est connectée."""
+        pass

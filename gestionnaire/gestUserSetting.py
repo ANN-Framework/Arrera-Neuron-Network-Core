@@ -1,6 +1,5 @@
 from librairy.travailJSON import *
 from gestionnaire.gestion import gestionnaire
-from tkinter import filedialog,messagebox
 import os
 import shutil
 
@@ -254,85 +253,11 @@ class gestUserSetting:
 
     # SOFT
 
-    def setSoft(self, soft:str):
-        if soft == "":
+    def setSoft(self, soft: str, path: str = ""):
+        if soft == "" or path == "":
             return False
+        return self.__fileUser.setDictJson("dictSoft", soft, path)
 
-        if self.__osDect.osLinux():
-            # Demande à l'utilisateur si le programme est dans son répertoire home
-            reponse = messagebox.askquestion(
-                "Choix répertoire",
-                "Le programme se trouve-t-il dans votre répertoire /home ?",
-                icon="question"
-            )
-
-            # Définir le répertoire initial en fonction de la réponse
-            initial_dir = os.path.expanduser("~") if reponse == "yes" else "/bin"
-
-            # Boîte de dialogue pour sélectionner le fichier
-            command = filedialog.askopenfilename(
-                title="Sélectionner un programme",
-                initialdir=initial_dir,
-                filetypes=[("Tous les fichiers", "*")]
-            )
-
-            # Si l'utilisateur annule la sélection
-            if not command:
-                return False
-
-            # Enregistrer le logiciel dans le fichier JSON pour Linux
-            return self.__fileUser.setDictJson("dictSoft", soft, command)
-        elif self.__osDect.osMac():
-            reponse = messagebox.askquestion(
-                "Choix répertoire",
-                "Votre application se trouve-t-elle dans le dossier Applications ?",
-                icon="question"
-            )
-            if reponse == "yes":
-                reponse = messagebox.askquestion(
-                    "Choix répertoire",
-                    "Votre application se trouve-t-elle dans le dossier Applications utilisateur ?",
-                    icon="question"
-                )
-                if reponse == "yes":
-                    initial_dir = "/Users/Applications"
-                else :
-                    initial_dir = "/Applications"
-            else:
-                initial_dir = "/"
-
-            command = filedialog.askopenfilename(
-                title="Sélectionner un programme",
-                initialdir=initial_dir,
-                filetypes=[("Tous les fichiers", "*")]
-            )
-
-            if not command:
-                return False
-
-            return self.__fileUser.setDictJson("dictSoft", soft, command)
-        elif self.__osDect.osWindows():
-            reponse = messagebox.askquestion(
-                "Choix répertoire",
-                "Est-ce que votre application est dans le menu Démarrer de l’utilisateur ?",
-                icon="question"
-            )
-            if reponse == "yes":
-                shorcutDir = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs")
-            else :
-                shorcutDir = r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs"
-
-            command = filedialog.askopenfilename(
-                title="Sélectionner un programme",
-                initialdir=shorcutDir,
-                filetypes=[("Raccourcis Windows", "*.lnk")]
-            )
-            if not command:
-                return False
-
-            return self.__fileUser.setDictJson("dictSoft", soft, command)
-        else:
-            return False
 
     def getSoft(self):
         """
@@ -387,8 +312,7 @@ class gestUserSetting:
 
     # Work Folder
 
-    def setWorkFolder(self):
-        folder = filedialog.askdirectory(title="Dossier de travail")
+    def setWorkFolder(self,folder:str):
         if folder == "":
             return False
         return self.__fileUser.setValeurJson("wordFolder", folder)
@@ -400,8 +324,7 @@ class gestUserSetting:
         return self.__fileUser.getContentJsonFlag("wordFolder")
 
     # Video Download Folder
-    def setVideoDownloadFolder(self):
-        folder = filedialog.askdirectory(title="Dossier de téléchargement de vidéo")
+    def setVideoDownloadFolder(self,folder:str):
         if folder == "":
             return False
         return self.__fileUser.setValeurJson("videoDownloadFolder", folder)

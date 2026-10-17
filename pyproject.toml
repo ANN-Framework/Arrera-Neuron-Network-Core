@@ -39,6 +39,7 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
+namespaces = true
 where = ["."]
 include = [
     "brain*",
@@ -49,7 +50,8 @@ include = [
     "neuron*",
     "objet*",
     "keyword*",
-    "language*"
+    "language*",
+    "instruction_ia*"
 ]
 
 [tool.setuptools.package-data]

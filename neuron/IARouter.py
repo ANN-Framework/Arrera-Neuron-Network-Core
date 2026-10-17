@@ -14,7 +14,6 @@ class IARouter:
         self.__gestionnaire = gestionnaire
         self.__gestIA = gestionnaire.getGestIA()
         self.__gestFNC = gestionnaire.getGestFNC()
-        self.__gestGUI = gestionnaire.getGestGUI()
         self.__listSortie = ["", ""]
         self.__valeurOut = 0
 
@@ -611,7 +610,7 @@ class IARouter:
     # ==========================================
 
     def __handle_brief(self, args):
-        moment = self.__arg(args, 0)
+        moment = self.__arg(args, 0,"morning")
 
         brief_gui_map = {
             "morning": "morning_brief",
@@ -619,11 +618,25 @@ class IARouter:
             "evening": "evening_brief",
         }
 
-        gui_name = brief_gui_map.get(moment)
-        if gui_name and self.__gestGUI.setGUIActive(gui_name):
+        gui_name = brief_gui_map.get(moment, "morning_brief")
+
+        if self.__gestionnaire.has_gui() and self.__gestionnaire.getGestGUI().setGUIActive(gui_name):
             return f"Interface de brief {moment} ouverte.", 5
-        else:
-            return "Impossible d'ouvrir le brief.", 1
+
+        meteo_str = "Indisponible"
+        fnc_meteo = self.__gestFNC.getFNCMeteo()
+
+        if fnc_meteo and fnc_meteo.weather_current("locate"):
+            meteo_str = f"{fnc_meteo.getNameTown()} : {fnc_meteo.getDescription()}, {fnc_meteo.getTemperature()}°C"
+
+        taches = []
+        fnc_task = self.__gestFNC.getFNCTask()
+
+        if fnc_task:
+            taches = fnc_task.getListTaskToday() or []
+        taches_str = ", ".join(taches) if taches else "Aucune tâche prévue aujourd'hui"
+
+        return f"Brief ({moment}) — Météo : {meteo_str}. Tâches du jour : {taches_str}.", 1
 
     # ==========================================
     # HANDLERS - WORK (Tableur / Word / Projet)
@@ -1142,7 +1155,8 @@ class IARouter:
         parametre = self.__arg(args, 1)
 
         parms = parametre if parametre else None
-        if self.__gestGUI.setGUIActive(nom_gui, parms):
+
+        if self.__gestionnaire.has_gui() and self.__gestionnaire.getGestGUI().setGUIActive(nom_gui, parms):
             return f"Interface graphique '{nom_gui}' ouverte.", 5
         else:
             return f"Impossible d'ouvrir l'interface '{nom_gui}'.", 5

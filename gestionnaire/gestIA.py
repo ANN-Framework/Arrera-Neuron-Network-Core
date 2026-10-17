@@ -5,6 +5,7 @@ import threading
 from gestionnaire.gestion import gestionnaire
 from librairy.ArreraIALoad import ArreraIALoad
 from librairy.model_downloader import *
+from librairy.resource_lib import resource_lib
 
 class gestIA :
     def __init__(self,gestionnaire:gestionnaire):
@@ -22,7 +23,7 @@ class gestIA :
 
         self.__gest_user = gestionnaire.getUserConf()
 
-        self.__dir_ia_instruction = "instruction_ia/"
+        self.__dir_ia_instruction = resource_lib().resource_path("instruction_ia") + "/"
 
         self.__dict_help_file = {"orthographe":"prompt_orthographe.txt",
                                  "dedoublonnage":"prompt_dedoublonnage.txt",
@@ -193,6 +194,12 @@ class gestIA :
             return self.__submit_task(self.__internal_reload_main_prompt)
 
         return True
+
+    def reload_main_prompt(self) -> bool:
+        """Recharge le prompt système principal (utile après l'ajout d'un GuiManager)."""
+        if self.__ia_mode_enabled and self.__ia_loader is not None:
+            return self.__submit_task(self.__internal_reload_main_prompt)
+        return False
 
     def __internal_reload_main_prompt(self) -> bool:
         try:
