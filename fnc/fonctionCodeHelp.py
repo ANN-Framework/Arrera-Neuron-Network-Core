@@ -1,12 +1,14 @@
 from fnc.fncBase import fncBase, gestionnaire
 import webbrowser as wb
 from objet.CHsearchDoc import CHsearchDoc
+from objet.CHGit import CHGit
 
 
 class fncCodehelp(fncBase):
     def __init__(self, gestionnaire: gestionnaire) -> None:
         super().__init__(gestionnaire)
         self.__searchDoc = CHsearchDoc()
+        self.__git = CHGit()
         self.__guiLaunch = ""
 
     def searchDocInDevDoc(self, recherche: str) -> bool:
@@ -33,12 +35,15 @@ class fncCodehelp(fncBase):
         else:
             return False
 
+    def getGitObjet(self) -> CHGit:
+        return self.__git
+
     def setGUICodeHelp(self, gui: str):
         """
         GUIColorSelector
         GUIGithubGestion
         GUILibrairy
-        GUIOrgaVar
+        GUIGitGestion
         """
         self.__guiLaunch = gui
         self._gestionnaire.getGestGUI().setGUIActive(gui)
@@ -64,7 +69,49 @@ class fncCodehelp(fncBase):
             return self._gestionnaire.getGestGUI().launch_gui()
         return False
 
-    def openGUIOrgaVar(self):
-        if self._gestionnaire.getGestGUI().setGUIActive("GUIOrgaVar"):
+    def openGUIGitGestion(self):
+        if self._gestionnaire.getGestGUI().setGUIActive("GUIGitGestion"):
             return self._gestionnaire.getGestGUI().launch_gui()
         return False
+
+    def __get_target_path(self, path: str = "") -> str:
+        if path and path.strip():
+            return path.strip()
+        work = self._gestionnaire.getGestFNC().getFNCWork()
+        if work and work.getEtatProject():
+            return work.getFolderProject()
+        return ""
+
+    def gitInit(self, path: str = "") -> tuple[bool, str]:
+        cible = self.__get_target_path(path)
+        if not cible:
+            return False, "Aucun dossier ou projet actif spécifié pour Git."
+        succes = self.__git.initRepo(cible)
+        return succes, self.__git.getLastOutput()
+
+    def gitStatus(self, path: str = "") -> str:
+        cible = self.__get_target_path(path)
+        if not cible:
+            return "Aucun dossier ou projet actif spécifié pour Git."
+        return self.__git.getStatus(cible)
+
+    def gitAdd(self, path: str = "", files: str = ".") -> tuple[bool, str]:
+        cible = self.__get_target_path(path)
+        if not cible:
+            return False, "Aucun dossier ou projet actif spécifié pour Git."
+        succes = self.__git.addFiles(cible, files)
+        return succes, self.__git.getLastOutput()
+
+    def gitCommit(self, message: str, path: str = "") -> tuple[bool, str]:
+        cible = self.__get_target_path(path)
+        if not cible:
+            return False, "Aucun dossier ou projet actif spécifié pour Git."
+        self.__git.addFiles(cible)
+        succes = self.__git.commit(cible, message)
+        return succes, self.__git.getLastOutput()
+
+    def gitLog(self, path: str = "") -> str:
+        cible = self.__get_target_path(path)
+        if not cible:
+            return "Aucun dossier ou projet actif spécifié pour Git."
+        return self.__git.getLastLogs(cible)

@@ -324,7 +324,7 @@ flowchart LR
 | Sélecteur de couleurs GUI | IARouter | Ouvre GUI `gui_color` | "Ouvre le sélecteur de couleurs" |
 | Gestionnaire GitHub GUI | IARouter | Ouvre GUI `gui_github` | "Ouvre le gestionnaire GitHub" |
 | Gestionnaire de librairies GUI | IARouter | Ouvre GUI `gui_librairy` | "Ouvre le gestionnaire de librairies" |
-| Organisateur de variables GUI | IARouter | Ouvre GUI `gui_orgavar` | "Ouvre l'organisateur de variables" |
+| Gestionnaire Git GUI | IARouter | Ouvre GUI `gui_git` | "Ouvre le gestionnaire Git" |
 
 ---
 

@@ -257,6 +257,9 @@ class IARouter:
             if action.startswith("projet_") or action.startswith("tableur_") or action.startswith("word_"):
                 args.insert(0, action)
                 action = "work"
+            elif action.startswith("git_") or action.startswith("doc_") or action.startswith("github_") or action in ["commit", "status"]:
+                args.insert(0, action)
+                action = "codehelp"
                 
         if action in self.__dispatch:
             if action == "reponse_simple":
@@ -780,6 +783,46 @@ class IARouter:
             data = fnc.getListFileProjet()
             return self.__format_list(data) if data else "Aucun fichier dans le projet.", 5
 
+        elif type_action == "projet_creer_dossier":
+            if fnc.createFolderProject(param1):
+                return f"Dossier '{param1}' créé avec succès dans le projet.", 5
+            return f"Échec de la création du dossier '{param1}'.", 1
+        elif type_action == "projet_ecrire_fichier":
+            if fnc.writeFileProject(param1, param2):
+                return f"Fichier '{param1}' écrit avec succès.", 5
+            return f"Échec de l'écriture dans le fichier '{param1}'.", 1
+        elif type_action == "projet_lire_fichier":
+            contenu = fnc.readFileProject(param1)
+            return contenu, 5
+        elif type_action == "projet_executer_commande":
+            succes, sortie = fnc.executeCommandProject(param1)
+            statut = "Succès" if succes else "Échec"
+            return f"Exécution ({statut}) :\n{sortie}", 5
+
+        # --- ACTIONS GIT SUR LE PROJET ---
+        elif type_action in ["git_commit", "projet_commit", "commit"]:
+            msg = param1 or param2 or "Commit automatique agent"
+            fnc_ch = self.__gestFNC.getFNCCodeHelp()
+            if fnc_ch:
+                succes, retour = fnc_ch.gitCommit(msg)
+                statut = "Succès" if succes else "Échec"
+                return f"Git ({statut}) : {retour}", 5
+            return "Erreur: CodeHelp non disponible pour Git.", 1
+
+        elif type_action in ["git_status", "projet_git_status", "status"]:
+            fnc_ch = self.__gestFNC.getFNCCodeHelp()
+            if fnc_ch:
+                return fnc_ch.gitStatus(), 5
+            return "Erreur: CodeHelp non disponible pour Git.", 1
+
+        elif type_action in ["git_init", "projet_git_init"]:
+            fnc_ch = self.__gestFNC.getFNCCodeHelp()
+            if fnc_ch:
+                succes, retour = fnc_ch.gitInit()
+                statut = "Succès" if succes else "Échec"
+                return f"Git ({statut}) : {retour}", 5
+            return "Erreur: CodeHelp non disponible pour Git.", 1
+
         # --- TÂCHES DU PROJET ---
         elif type_action == "projet_tache_ajouter":
             date = self.__parse_date(param2)
@@ -1137,12 +1180,23 @@ class IARouter:
             "gui_color": lambda: fnc.openGUIColorSelector(),
             "gui_github": lambda: fnc.openGUIGithubGestion(),
             "gui_librairy": lambda: fnc.openGUILibrairy(),
-            "gui_orgavar": lambda: fnc.openGUIOrgaVar(),
+            "gui_git": lambda: fnc.openGUIGitGestion(),
+            "git_init": lambda: fnc.gitInit(),
+            "git_status": lambda: fnc.gitStatus(),
+            "git_add": lambda: fnc.gitAdd(),
+            "git_commit": lambda: fnc.gitCommit(param1),
+            "git_log": lambda: fnc.gitLog(),
         }
 
         action = codehelp_actions.get(type_action)
         if action:
-            action()
+            res = action()
+            if isinstance(res, tuple):
+                succes, msg = res
+                statut = "Succès" if succes else "Échec"
+                return f"Git ({statut}) : {msg}", 5
+            elif isinstance(res, str):
+                return res, 5
             return f"Action CodeHelp '{type_action}' exécutée.", 5
         return "Action CodeHelp non reconnue.", 1
 

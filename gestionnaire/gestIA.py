@@ -508,7 +508,7 @@ class gestIA :
             8. Interface / GUI : GUI [NOM_GUI]
                - S'il veut ouvrir une interface graphique.
                - NOM_GUI doit être parmi : CALCULATRICE, LECTURE, ORTHOGRAPHE, TRADUCTEUR, AGENDA, TACHE, WORK, TACHE_PROJET, DOWNLOAD.
-               - ATTENTION : Si l'utilisateur demande de lister ses projets, de créer, ou d'ouvrir un projet PRÉCIS (ex: "Ouvre le projet Alpha"), ce n'est PAS une ouverture d'interface globale. Tu DOIS répondre COMPLEXE.
+                - ATTENTION : Si l'utilisateur demande de lister ses projets, de créer ou ouvrir un projet, de créer un dossier, d'écrire/lire un fichier, ou d'exécuter une commande, ce n'est PAS une ouverture d'interface. Tu DOIS répondre STRICTEMENT COMPLEXE.
                - Exemple : GUI CALCULATRICE
             
             9. Autre : COMPLEXE
@@ -529,13 +529,17 @@ class gestIA :
                 
             premier_mot = mot_cle.split(" ")[0]
             mots_autorises = ["METEO", "TEMPERATURE", "ACTU", "RADIO", "HEURE", "ARRET", "MINUTEUR", "GUI"]
-            
+
             if premier_mot in mots_autorises:
-                if mot_cle == "GUI WORK":
+                if premier_mot == "GUI":
                     mots_work_complexe = ["projet", "project", "tableur", "excel",
                                           "word", "docx", "ferme", "crée", "cree",
                                           "créer", "creer", "liste", "lister",
-                                          "fichier", "ouvre le projet", "ferme le projet",
+                                          "fichier", "dossier", "repertoire", "code",
+                                          "commande", "script", "terminal", "git",
+                                          "commit", "init", "dépôt", "depot", "status",
+                                          "main", "python",
+                                          "ouvre le projet", "ferme le projet",
                                           "ouvre un", "ouvrir le projet", "ouvrir un"]
                     requete_lower = requete.lower()
                     for mot in mots_work_complexe:

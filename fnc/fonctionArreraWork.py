@@ -540,6 +540,124 @@ class fncArreraWork(fncBase):
     def getListTacheNoFinishProjet(self):
         return self.__listTaskProjet
 
+    # Partie tool  IA
+
+    def _resolve_safe_path(self, relative_path: str):
+        """
+        Vérifie et résout un chemin pour s'assurer qu'il reste confiné
+        strictement dans le dossier du projet actif (anti-traversal et symlinks).
+        """
+        if not self.__projectOpen or not self.__folderProject:
+            return None
+
+        # Supprime les slashs initiaux pour éviter que join n'écrase la base
+        cleaned_path = relative_path.strip().lstrip("/\\")
+        target_path = os.path.realpath(os.path.join(self.__folderProject, cleaned_path))
+        base_path = os.path.realpath(self.__folderProject)
+        try:
+            # Vérifie que base_path est bien le préfixe commun du chemin cible
+            common = os.path.commonpath([base_path, target_path])
+            if common == base_path:
+                return target_path
+            return None
+        except ValueError:
+            return None
+
+    def createFolderProject(self, relative_path: str) -> bool:
+        """
+        Crée un dossier (et ses sous-dossiers) dans le projet de façon sécurisée.
+        """
+        safe_path = self._resolve_safe_path(relative_path)
+        if not safe_path:
+            return False
+        try:
+            os.makedirs(safe_path, exist_ok=True)
+            self.setlistFileProject()
+            return True
+        except Exception:
+            return False
+
+    def writeFileProject(self, relative_path: str, content: str) -> bool:
+        """
+        Écrit du contenu dans un fichier du projet de façon sécurisée.
+        Crée automatiquement les sous-dossiers parents si nécessaire.
+        """
+        safe_path = self._resolve_safe_path(relative_path)
+        if not safe_path:
+            return False
+        try:
+            parent_dir = os.path.dirname(safe_path)
+            os.makedirs(parent_dir, exist_ok=True)
+            with open(safe_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            self.__lastCreateFile = os.path.basename(safe_path)
+            self.setlistFileProject()
+            return True
+        except Exception:
+            return False
+
+    def readFileProject(self, relative_path: str, max_chars: int = 5000) -> str:
+        """
+        Lit le contenu d'un fichier du projet de manière sécurisée.
+        Tronque le texte pour protéger la mémoire et le contexte de l'IA.
+        """
+        safe_path = self._resolve_safe_path(relative_path)
+        if not safe_path:
+            return "Erreur : Chemin invalide ou situé en dehors du projet."
+        if not os.path.exists(safe_path):
+            return f"Erreur : Le fichier '{relative_path}' n'existe pas."
+        if not os.path.isfile(safe_path):
+            return f"Erreur : '{relative_path}' n'est pas un fichier."
+
+        try:
+            # Sécurité : refuse la lecture des fichiers de plus de 2 Mo
+            if os.path.getsize(safe_path) > 2 * 1024 * 1024:
+                return "Erreur : Fichier trop volumineux pour être lu (> 2 Mo)."
+
+            with open(safe_path, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read(max_chars + 1)
+
+            if len(content) > max_chars:
+                return content[:max_chars] + "\n\n[... Contenu tronqué pour respecter la limite ...]"
+            return content
+        except Exception as e:
+            return f"Erreur lors de la lecture du fichier : {e}"
+
+    def executeCommandProject(self, command: str, timeout: int = 30) -> tuple[bool, str]:
+        """
+        Exécute une commande terminal confinée dans le dossier racine du projet.
+        Applique des filtres de sécurité et un timeout strict.
+        """
+        if not self.__projectOpen or not self.__folderProject:
+            return False, "Erreur : Aucun projet n'est ouvert."
+
+        # Filtres anti-commandes dangereuses
+        cmd_lower = command.strip().lower()
+        forbidden_keywords = ["sudo", "su ", "pkexec", "doas", "rm -rf /", "rm -rf ~"]
+        for forbidden in forbidden_keywords:
+            if forbidden in cmd_lower:
+                return False, f"Sécurité : Commande interdite détectée ('{forbidden}')."
+
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                cwd=self.__folderProject,
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            )
+            output = result.stdout
+            if result.stderr:
+                output += ("\n" if output else "") + result.stderr
+
+            success = (result.returncode == 0)
+            return success, output.strip() if output.strip() else "(Aucune sortie console)"
+        except subprocess.TimeoutExpired:
+            return False, f"Erreur : La commande a dépassé le délai maximal de {timeout}s."
+        except Exception as e:
+            return False, f"Erreur lors de l'exécution : {e}"
+
     # Getteur
 
     def getEtatTableur(self):
@@ -550,6 +668,9 @@ class fncArreraWork(fncBase):
 
     def getEtatProject(self):
         return self.__projectOpen
+
+    def getFolderProject(self):
+        return self.__folderProject
 
     def getNameFileTableur(self):
         return self.__fileTableur

@@ -83,11 +83,12 @@ class gestFNC:
             self.__work = fncArreraWork(self.__gestionnaire)
 
             self.__prompt += """
-                - "work": Args ["action", "p1", "p2", "p3"]. 
-                  Actions tableur : tableur_ouvrir, tableur_fermer, tableur_lire, tableur_ecrire, tableur_supprimer, tableur_formule, tableur_etat, tableur_ouvrir_interface.
-                  Actions word : word_ouvrir, word_fermer, word_lire, word_ecrire, word_etat, word_ouvrir_interface.
-                  Actions projet : projet_lister, projet_creer, projet_ouvrir, projet_fermer, projet_etat, projet_creer_fichier, projet_lister_fichiers, projet_tache_ajouter, projet_tache_terminer.
-                """
+                           - "work": Args ["action", "p1", "p2", "p3"]. 
+                             Actions tableur : tableur_ouvrir, tableur_fermer, tableur_lire, tableur_ecrire, tableur_supprimer, tableur_formule, tableur_etat, tableur_ouvrir_interface.
+                             Actions word : word_ouvrir, word_fermer, word_lire, word_ecrire, word_etat, word_ouvrir_interface.
+                             Actions projet : projet_lister, projet_creer, projet_ouvrir, projet_fermer, projet_etat, projet_lister_fichiers, projet_creer_dossier(p1=dossier), projet_ecrire_fichier(p1=fichier_ou_chemin, p2=contenu), projet_lire_fichier(p1=fichier), projet_executer_commande(p1=commande), projet_tache_ajouter, projet_tache_terminer.
+                             RÈGLE FICHIER : Pour TOUTE création de script (ex: main.py), de code ou de fichier avec contenu, utilise OBLIGATOIREMENT "projet_ecrire_fichier".
+                           """
 
         if conf.etatService == 1 :
             from fnc.fonctionCalculatrice import fncCalculatrice
@@ -122,17 +123,16 @@ class gestFNC:
             self.__downloader_youtube = fncArreraVideoDownload(self.__gestionnaire)
 
             self.__prompt += """
-                - "open": Args ["action", "cible"]. 
-                  actions: logiciel(cible=nom_logiciel), site_enregistre(cible=nom_site), url(cible=url_complete), doc_assistant, lister_logiciels, lister_sites, lister_radios.
-                  Exemples: "ouvre firefox" -> action=logiciel cible=firefox. "quels logiciels j'ai" -> action=lister_logiciels. "ouvre la doc" -> action=doc_assistant. "quels sites j'ai" -> action=lister_sites. "quelles radios sont disponibles" -> action=lister_radios.
-                - "download_youtube": Args ["mode", "url"]. modes: "1"(video), "2"(audio), ouvrir_interface.
+                - "codehelp": Args ["action", "p1"]. 
+                  Actions Git : git_init (initialiser un dépôt Git dans le projet en cours), git_status (vérifier l'état Git), git_add, git_commit(p1=message), git_log.
+                  Actions Web/Doc : doc_devdoc, doc_microsoft, doc_python, github_search, github_site, gui_color, gui_github, gui_librairy, gui_git.
                 """
 
         if conf.etatCodehelp == 1 :
             from fnc.fonctionCodeHelp import fncCodehelp  # CODE HELP
             self.__codehelp = fncCodehelp(self.__gestionnaire)
             self.__prompt +="""
-                - "codehelp": Args ["action", "p1"]. actions: doc_devdoc, doc_microsoft, doc_python, github_search, github_site, gui_color, gui_github, gui_librairy, gui_orgavar.
+                - "codehelp": Args ["action", "p1"]. actions: doc_devdoc, doc_microsoft, doc_python, github_search, github_site, gui_color, gui_github, gui_librairy, gui_git, git_init, git_status, git_add, git_commit(p1=message), git_log.
                 """
 
         self.__prompt += """

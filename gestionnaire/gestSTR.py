@@ -7,7 +7,7 @@ class gestSTR :
         chaine = chaine.replace("-"," ")
         chaine = chaine.replace('"'," ")
         chaine = chaine.replace("_"," ")
-        chaine = chaine.replace('/'," ")
+        #chaine = chaine.replace('/'," ")
         chaine = chaine.replace("é","e")
         chaine = chaine.replace("è","e")
         chaine = chaine.replace("à","a")
