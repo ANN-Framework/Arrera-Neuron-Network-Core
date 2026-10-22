@@ -23,6 +23,7 @@ class gestionnaire:
         from gestionnaire.gestUserSetting import gestUserSetting
         from gestionnaire.gestKeyword import gestKeyword
         from gestionnaire.gestIA import gestIA
+        from gestionnaire.gestMemoire import gestMemoire
         # Librairy
         # Importation des librairies
         from librairy.arrera_voice import CArreraVoice
@@ -59,6 +60,7 @@ class gestionnaire:
 
         self.__gestHist = gestHistorique(self)
         self.__gestNeuron = gestNeuron(self)
+        self.__gestMemoire = gestMemoire(self)
 
         # Varriable
         self.__oldRequette = ""
@@ -241,6 +243,9 @@ class gestionnaire:
     
     def getEmplacementDownload(self):
         return self.__userConf.getVideoDownloadFolder()
+
+    def getGestMemoire(self):
+        return self.__gestMemoire
 
     def netoyageChaine(self,chaine:str):
         """

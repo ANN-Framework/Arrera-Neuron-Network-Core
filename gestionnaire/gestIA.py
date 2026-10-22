@@ -454,6 +454,8 @@ class gestIA :
         for add_prompt in self.__additional_instructions:
             prompt += "\n" + add_prompt
 
+        prompt += "\n" + self.__gestionnaire.getGestMemoire().getPromptContext()
+
         prompt += """
             Règles strictes :
             1. Choisis l'action la plus pertinente en fonction de la demande de l'utilisateur.
@@ -532,6 +534,14 @@ class gestIA :
 
             if premier_mot in mots_autorises:
                 if premier_mot == "GUI":
+                    requete_lower = requete.lower()
+                    mots_declencheurs_gui = ["ouvre", "ouvrir", "montre", "montrer",
+                                              "affiche", "afficher", "lance", "lancer",
+                                              "démarre", "demarrer", "démarrer",
+                                              "active", "activer", "interface"]
+                    if not any(mot in requete_lower for mot in mots_declencheurs_gui):
+                        return "COMPLEXE"
+
                     mots_work_complexe = ["projet", "project", "tableur", "excel",
                                           "word", "docx", "ferme", "crée", "cree",
                                           "créer", "creer", "liste", "lister",
@@ -539,9 +549,10 @@ class gestIA :
                                           "commande", "script", "terminal", "git",
                                           "commit", "init", "dépôt", "depot", "status",
                                           "main", "python",
+                                          "retiens", "souvenir", "souvenirs", "memoire", "memoires",
+                                          "rappelle", "oublie", "noter", "note", "enregistre", "enregistrer",
                                           "ouvre le projet", "ferme le projet",
                                           "ouvre un", "ouvrir le projet", "ouvrir un"]
-                    requete_lower = requete.lower()
                     for mot in mots_work_complexe:
                         if mot in requete_lower:
                             return "COMPLEXE"
@@ -645,6 +656,8 @@ class gestIA :
             === TA PERSONNALITÉ ===
             {personnalite}
             =======================
+            
+            {self.__gestionnaire.getGestMemoire().getPromptContext()}
             
             {contexte_requete}
                         

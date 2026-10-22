@@ -136,6 +136,10 @@ class gestFNC:
                 """
 
         self.__prompt += """
+            - "memoire": Args ["action", "p1"]. actions: enregistrer(p1=information a retenir), lister, oublier(p1=information ou numero a oublier), vider.
+            """
+
+        self.__prompt += """
             - "reponse_simple": Par defaut. Args: []
         """
 

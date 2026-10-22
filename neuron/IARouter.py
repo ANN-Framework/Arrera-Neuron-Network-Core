@@ -38,6 +38,7 @@ class IARouter:
             "open": self.__handle_open,
             "download_youtube": self.__handle_download,
             "codehelp": self.__handle_codehelp,
+            "memoire": self.__handle_memoire,
             # Actions GUI
             "gui": self.__handle_gui,
             # Fallback
@@ -198,6 +199,85 @@ class IARouter:
 
         return None
 
+    def __prefilter_memoire(self, requette: str):
+        """
+        Garde-fou MÉMOIRE : détecte les commandes de mémoire explicites par mots-clés
+        pour bypasser le LLM qui confond souvent les actions, tout en générant une réponse naturelle.
+        Retourne (args_list, val_out) ou None si pas de match.
+        """
+        req = requette.lower().strip().strip("?.! ").replace("-", " ")
+
+        # 1. Lister / Consulter les souvenirs
+        mots_lister = [
+            "liste mes souvenirs", "lister mes souvenirs", "liste tes souvenirs",
+            "lister tes souvenirs", "liste les souvenirs", "lister les souvenirs",
+            "liste de mes souvenirs", "mes souvenirs", "quels sont mes souvenirs",
+            "qu'as tu en memoire", "qu as tu en memoire", "qu'as tu en mémoire",
+            "qu'est ce que tu sais sur moi", "qu est ce que tu sais sur moi",
+            "qu'as tu retenu sur moi", "qu as tu retenu sur moi",
+            "qu'as tu retenu", "qu as tu retenu",
+            "que sais tu sur moi", "que sais tu de moi",
+            "affiche mes souvenirs", "montre mes souvenirs", "voir mes souvenirs"
+        ]
+        for mot in mots_lister:
+            if mot in req:
+                return (["lister"], 5)
+
+        # 2. Vider / Réinitialiser toute la mémoire
+        mots_vider = [
+            "efface toute ta memoire", "efface toute ta mémoire",
+            "vide toute ta memoire", "vide toute ta mémoire",
+            "efface ta memoire", "efface ta mémoire",
+            "vide ta memoire", "vide ta mémoire",
+            "supprime tous mes souvenirs", "efface tous mes souvenirs",
+            "oublie tout", "reinitialise ta memoire", "reinitialise ta mémoire"
+        ]
+        for mot in mots_vider:
+            if mot in req:
+                return (["vider"], 5)
+
+        # 3. Oublier / Supprimer un souvenir
+        prefixes_oublier = [
+            "oublie le souvenir ", "oublie que ", "oublie qu'", "oublie qu’", "oublie ",
+            "supprime le souvenir ", "supprime mon souvenir ", "supprime le ",
+            "efface le souvenir ", "efface mon souvenir "
+        ]
+        for pref in prefixes_oublier:
+            if req.startswith(pref) or (" " + pref) in req:
+                if req.startswith(pref):
+                    info = req[len(pref):].strip()
+                else:
+                    info = req.split(pref, 1)[1].strip()
+                for residu in ["s'il te plait", "s'il te plaît", "stp", "svp"]:
+                    info = info.replace(residu, "").strip()
+                if info:
+                    return (["oublier", info], 5)
+
+        # 4. Enregistrer / Retenir un fait
+        prefixes_enregistrer = [
+            "retiens que ", "retiens qu'", "retiens qu’", "retiens ",
+            "rappelle toi que ", "rappelle toi qu'", "rappelle toi qu’", "rappelle toi ",
+            "rappelle-toi que ", "rappelle-toi qu'", "rappelle-toi qu’", "rappelle-toi ",
+            "note que ", "note qu'", "note qu’", "note ",
+            "garde en memoire que ", "garde en memoire qu'", "garde en memoire ",
+            "garde en mémoire que ", "garde en mémoire qu'", "garde en mémoire ",
+            "enregistre que ", "enregistre qu'", "enregistre qu’", "enregistre ",
+            "memorise que ", "memorise qu'", "memorise ",
+            "mémorise que ", "mémorise qu'", "mémorise "
+        ]
+        for pref in prefixes_enregistrer:
+            if req.startswith(pref) or (" " + pref) in req:
+                if req.startswith(pref):
+                    info = req[len(pref):].strip()
+                else:
+                    info = req.split(pref, 1)[1].strip()
+                for residu in ["s'il te plait", "s'il te plaît", "stp", "svp"]:
+                    info = info.replace(residu, "").strip()
+                if info:
+                    return (["enregistrer", info], 5)
+
+        return None
+
     # ==========================================
     # MÉTHODE PRINCIPALE DE ROUTAGE
     # ==========================================
@@ -227,6 +307,21 @@ class IARouter:
                 self.__set_output(reponse_finale, val_out)
             except Exception as e:
                 print(f"Erreur IARouter [prefilter_projet]: {e}")
+                self.__set_output("Une erreur système s'est produite.", 1)
+            return self.__valeurOut != 0
+
+        # 1ter. Garde-fou MÉMOIRE : détection par mots-clés pour bypasser le LLM
+        memoire_result = self.__prefilter_memoire(requette)
+        if memoire_result is not None:
+            action_args, val_out = memoire_result
+            try:
+                donnees, val_out = self.__handle_memoire(action_args)
+                if not donnees:
+                    donnees = "Action terminée."
+                reponse_finale = self.__gestIA.generate_final_response(requette, donnees)
+                self.__set_output(reponse_finale, val_out)
+            except Exception as e:
+                print(f"Erreur IARouter [prefilter_memoire]: {e}")
                 self.__set_output("Une erreur système s'est produite.", 1)
             return self.__valeurOut != 0
 
@@ -260,6 +355,15 @@ class IARouter:
             elif action.startswith("git_") or action.startswith("doc_") or action.startswith("github_") or action in ["commit", "status"]:
                 args.insert(0, action)
                 action = "codehelp"
+            elif action.startswith("memoire_") or action in [
+                "enregistrer", "enregistre", "retenir", "retiens", "ajouter", "ajoute",
+                "sauvegarder", "sauvegarde", "noter", "note", "memoriser", "mémoriser",
+                "lister", "liste", "souvenirs", "souvenir",
+                "oublier", "oublie", "supprimer", "supprime", "effacer", "efface",
+                "vider", "vide", "reset", "clear"
+            ]:
+                args.insert(0, action)
+                action = "memoire"
                 
         if action in self.__dispatch:
             if action == "reponse_simple":
@@ -1199,6 +1303,74 @@ class IARouter:
                 return res, 5
             return f"Action CodeHelp '{type_action}' exécutée.", 5
         return "Action CodeHelp non reconnue.", 1
+
+    # ==========================================
+    # HANDLERS - MÉMOIRE
+    # ==========================================
+
+    def __handle_memoire(self, args):
+        type_action = self.__arg(args, 0).lower().strip()
+        param1 = self.__arg(args, 1).strip()
+        mem = self.__gestionnaire.getGestMemoire()
+
+        mots_enregistrer = [
+            "enregistrer", "enregistre", "retenir", "retiens", "ajouter", "ajoute",
+            "sauvegarder", "sauvegarde", "noter", "note", "memoriser", "mémoriser",
+            "memorise", "mémorise", "memoire_enregistrer", "memoire_retenir"
+        ]
+        mots_lister = [
+            "lister", "liste", "afficher", "affiche", "voir", "montre", "montrer",
+            "lire", "tout", "souvenirs", "souvenir", "memoire_lister"
+        ]
+        mots_oublier = [
+            "supprimer", "supprime", "oublier", "oublie", "effacer", "efface",
+            "retirer", "retire", "memoire_supprimer", "memoire_oublier"
+        ]
+        mots_vider = [
+            "vider", "vide", "reset", "clear", "tout_effacer", "effacer_tout", "memoire_vider"
+        ]
+
+        # Cas sans argument -> lister
+        if not type_action and not param1:
+            return mem.listMemories(), 5
+
+        # Cas où 1 seul argument est fourni
+        if len(args) == 1 or (type_action and not param1):
+            if type_action in mots_lister:
+                return mem.listMemories(), 5
+            elif type_action in mots_vider:
+                if mem.clearMemories():
+                    return "Tous les souvenirs ont été effacés avec succès.", 5
+                return "Échec de l'effacement de la mémoire.", 1
+            elif type_action not in mots_enregistrer and type_action not in mots_oublier:
+                # C'est directement le texte à mémoriser
+                param1 = type_action
+                type_action = "enregistrer"
+
+        # Nettoyage préfixes de param1
+        for prefix in ["que ", "qu'", "qu’", "de ", "d'", "d’"]:
+            if param1.lower().startswith(prefix):
+                param1 = param1[len(prefix):].strip()
+
+        if type_action in mots_enregistrer:
+            if mem.addMemory(param1):
+                return f"Information retenue : '{param1}'.", 5
+            return f"Échec de l'enregistrement : {mem.getLastMessage()}", 1
+
+        elif type_action in mots_lister:
+            return mem.listMemories(), 5
+
+        elif type_action in mots_oublier:
+            if mem.deleteMemory(param1):
+                return f"Souvenir concernant '{param1}' supprimé avec succès.", 5
+            return f"Impossible de supprimer le souvenir : {mem.getLastMessage()}", 1
+
+        elif type_action in mots_vider:
+            if mem.clearMemories():
+                return "Tous les souvenirs ont été effacés avec succès.", 5
+            return "Échec de l'effacement de la mémoire.", 1
+
+        return "Action de mémoire non reconnue.", 1
 
     # ==========================================
     # HANDLERS - GUI
