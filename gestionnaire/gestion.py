@@ -24,6 +24,7 @@ class gestionnaire:
         from gestionnaire.gestKeyword import gestKeyword
         from gestionnaire.gestIA import gestIA
         from gestionnaire.gestMemoire import gestMemoire
+        from gestionnaire.gestSession import gestSession
         # Librairy
         # Importation des librairies
         from librairy.arrera_voice import CArreraVoice
@@ -61,6 +62,7 @@ class gestionnaire:
         self.__gestHist = gestHistorique(self)
         self.__gestNeuron = gestNeuron(self)
         self.__gestMemoire = gestMemoire(self)
+        self.__gestSession = gestSession(self)
 
         # Varriable
         self.__oldRequette = ""
@@ -246,6 +248,9 @@ class gestionnaire:
 
     def getGestMemoire(self):
         return self.__gestMemoire
+
+    def getGestSession(self):
+        return self.__gestSession
 
     def netoyageChaine(self,chaine:str):
         """

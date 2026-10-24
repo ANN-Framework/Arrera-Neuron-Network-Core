@@ -236,6 +236,18 @@ class IARouter:
             if mot in req:
                 return (["vider"], 5)
 
+        # 2bis. Réinitialiser la mémoire à court terme (session)
+        mots_session_reset = [
+            "oublie notre conversation", "oublie cette conversation",
+            "oublie notre discussion", "oublie cette discussion",
+            "recommencons a zero", "recommençons a zero", "recommençons à zéro",
+            "nouveau sujet", "changeons de sujet", "efface la session",
+            "reset session"
+        ]
+        for mot in mots_session_reset:
+            if mot in req:
+                return (["session_reset"], 5)
+
         # 3. Oublier / Supprimer un souvenir
         prefixes_oublier = [
             "oublie le souvenir ", "oublie que ", "oublie qu'", "oublie qu’", "oublie ",
@@ -365,9 +377,27 @@ class IARouter:
                 args.insert(0, action)
                 action = "memoire"
                 
+        # Garde-fou RECHERCHE : n'ouvrir le navigateur que si l'utilisateur demande explicitement une recherche web
+        if action == "recherche":
+            mots_recherche_web = [
+                "cherche", "recherche", "google", "web", "internet", "bing",
+                "brave", "duckduckgo", "qwant", "ecosia", "perplexity", "moteur",
+                "sur le net", "en ligne"
+            ]
+            req_lower = requette.lower()
+            if not any(mot in req_lower for mot in mots_recherche_web):
+                action = "reponse_simple"
+                if not reponse and len(args) > 1 and args[1]:
+                    reponse = ""
+
         if action in self.__dispatch:
             if action == "reponse_simple":
-                self.__set_output(reponse)
+                try:
+                    reponse_finale = self.__gestIA.generate_final_response(requette, reponse)
+                    self.__set_output(reponse_finale, 1)
+                except Exception as e:
+                    print(f"Erreur IARouter [reponse_simple]: {e}")
+                    self.__set_output(reponse, 1)
             else:
                 try:
                     donnees, val_out = self.__dispatch[action](args)
@@ -381,9 +411,17 @@ class IARouter:
                     self.__set_output("Une erreur système s'est produite lors de l'exécution de l'action.", 1)
         else:
             if reponse:
-                self.__set_output(reponse)
+                try:
+                    reponse_finale = self.__gestIA.generate_final_response(requette, reponse)
+                    self.__set_output(reponse_finale, 1)
+                except Exception:
+                    self.__set_output(reponse, 1)
             else:
-                self.__set_output("Action non reconnue.")
+                try:
+                    reponse_finale = self.__gestIA.generate_final_response(requette, "")
+                    self.__set_output(reponse_finale, 1)
+                except Exception:
+                    self.__set_output("Action non reconnue.", 1)
 
         return self.__valeurOut != 0
 
@@ -1333,6 +1371,11 @@ class IARouter:
         # Cas sans argument -> lister
         if not type_action and not param1:
             return mem.listMemories(), 5
+
+        # Cas réinitialisation de la session (court terme)
+        if type_action in ["session_reset", "reset_session", "clear_session"]:
+            self.__gestionnaire.getGestSession().clearSession()
+            return "La mémoire de notre conversation récente a été réinitialisée. Nous pouvons aborder un nouveau sujet.", 5
 
         # Cas où 1 seul argument est fourni
         if len(args) == 1 or (type_action and not param1):

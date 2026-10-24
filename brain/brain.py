@@ -83,6 +83,7 @@ class ABrain :
                 self.__gestSocket.broadcast_data_with_server("closed")
                 self.__gestSocket.stop_socket_server()
         self.__gestionnaire.getGestHist().saveHist()
+        self.__gestionnaire.getGestSession().clearSession()
         return str(text)
 
     def reload_ia(self) -> bool:
@@ -237,6 +238,22 @@ class ABrain :
             self.__gestionnaire.setOld("requette api", requette)
         else:
             self.__gestionnaire.setOld(self.__listOut[0], requette)
+
+        # Enregistrement dans la mémoire à court terme (session active)
+        if self.__listOut and self.__listOut[0] and self.__valeurOut != 15:
+            mots_reset = [
+                "oublie notre conversation", "oublie cette conversation",
+                "oublie notre discussion", "oublie cette discussion",
+                "recommencons a zero", "recommençons a zero", "recommençons à zéro",
+                "nouveau sujet", "changeons de sujet", "efface la session",
+                "reset session"
+            ]
+            if not any(mot in requette for mot in mots_reset):
+                self.__gestionnaire.getGestSession().addTurn(
+                    user_input=str(var),
+                    assistant_output=self.__listOut[0],
+                    action=self.__neuronUsed
+                )
 
     def updateAssistant(self):
         # print("updateAssistant")

@@ -113,7 +113,7 @@ class gestFNC:
             self.__search_assistant = fncArreraSearch(self.__gestionnaire)
 
             self.__prompt += """
-                - "recherche": Args ["moteur", "requete"]. moteurs: recherche, google, brave, duckduckgo, qwant, ecosia, bing, perplexity, amazon, big_recherche.
+                - "recherche": Ouvre le navigateur web externe pour lancer une recherche internet. À utiliser UNIQUEMENT si l'utilisateur demande explicitement de faire une recherche sur Google, sur internet ou sur le web (ex: "cherche sur Google", "fais une recherche internet", "recherche sur le web"). Ne JAMAIS utiliser pour de simples questions de connaissances ou de discussion. Args ["moteur", "requete"]. moteurs: recherche, google, brave, duckduckgo, qwant, ecosia, bing, perplexity, amazon, big_recherche.
                 """
 
         if conf.etatOpen == 1 :
@@ -140,7 +140,7 @@ class gestFNC:
             """
 
         self.__prompt += """
-            - "reponse_simple": Par defaut. Args: []
+            - "reponse_simple": Action par défaut pour TOUTE question générale, question de culture générale, explication, discussion ou question de suivi de conversation (ex: "qui est...", "comment...", "pourquoi...", "quel âge a-t-il...", "quelle est sa création...", etc.) sans outil externe demandé. Réponds directement et précisément à la question dans la clé "reponse". Args: []
         """
 
     def get_prompt(self):

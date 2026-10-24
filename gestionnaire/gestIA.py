@@ -216,7 +216,15 @@ class gestIA :
         if not self.__ia_mode_enabled:
             self.__model_reponse_ok = False
             return False
-        return self.__submit_task(self.__internal_send_request_ia, requette)
+
+        # Inclure le contexte récent de la session pour résoudre les pronoms et références
+        session_ctx = self.__gestionnaire.getGestSession().getPromptContext()
+        if session_ctx:
+            requete_avec_contexte = f"{session_ctx}\nDemande actuelle de l'utilisateur : {requette}"
+        else:
+            requete_avec_contexte = requette
+
+        return self.__submit_task(self.__internal_send_request_ia, requete_avec_contexte)
 
     def __internal_send_request_ia(self, requette: str):
         try:
@@ -455,12 +463,15 @@ class gestIA :
             prompt += "\n" + add_prompt
 
         prompt += "\n" + self.__gestionnaire.getGestMemoire().getPromptContext()
+        prompt += "\n" + self.__gestionnaire.getGestSession().getPromptContext()
 
         prompt += """
-            Règles strictes :
-            1. Choisis l'action la plus pertinente en fonction de la demande de l'utilisateur.
-            2. Si une action nécessite des arguments, fournis-les dans le tableau "args". Sinon, laisse le tableau vide [].
-            3. NE REMPLIS la clé "reponse" QUE SI l'action choisie est "reponse_simple".
+            Règles strictes de décision :
+            1. Pour TOUTE question générale, demande d'information, question de culture générale, explication, discussion ou question de suivi de conversation (ex: "qui est...", "quelle est...", "quel âge...", "comment...", "pourquoi..."), choisis TOUJOURS "action": "reponse_simple" et rédige ta réponse complète et précise directement dans la clé "reponse".
+            2. N'utilise l'action "recherche" QUE si l'utilisateur demande explicitement de faire une recherche sur internet ou d'ouvrir un navigateur web (ex: "cherche sur Google", "recherche sur le net").
+            3. Choisis une action spécifique (tache, meteo, work, calculatrice, etc.) uniquement si la demande correspond directement aux outils disponibles.
+            4. Si une action nécessite des arguments, fournis-les dans le tableau "args". Sinon, laisse le tableau vide [].
+            5. NE REMPLIS la clé "reponse" QUE SI l'action choisie est "reponse_simple".
             """
         return prompt
 
@@ -639,8 +650,12 @@ class gestIA :
         personnalite = self.__gestionnaire.getLanguageObjet().getPersonnalite()
 
         if requete.strip():
-            contexte_requete = f'L\'utilisateur t\'a demandé : "{requete}"\nLe système a exécuté l\'action et a retourné le résultat suivant : \n"{donnees_systeme}"'
-            tache = "Ta tâche : Formule une réponse naturelle et conversationnelle pour l'utilisateur pour lui transmettre ce résultat."
+            if donnees_systeme and donnees_systeme.strip():
+                contexte_requete = f'L\'utilisateur t\'a demandé : "{requete}"\nInformations ou résultat retourné par le système : \n"{donnees_systeme}"'
+                tache = "Ta tâche : Formule une réponse naturelle, conversationnelle et complète pour l'utilisateur en intégrant ce résultat."
+            else:
+                contexte_requete = f'L\'utilisateur t\'a demandé : "{requete}"'
+                tache = "Ta tâche : Réponds directement à la question ou remarque de l'utilisateur avec tes connaissances de manière naturelle, complète et polie."
         else:
             contexte_requete = f'Directive système : "{donnees_systeme}"'
             tache = "Ta tâche : Rédige ce que tu vas dire spontanément à l'utilisateur en accomplissant cette directive."
@@ -658,6 +673,8 @@ class gestIA :
             =======================
             
             {self.__gestionnaire.getGestMemoire().getPromptContext()}
+            
+            {self.__gestionnaire.getGestSession().getPromptContext()}
             
             {contexte_requete}
                         
