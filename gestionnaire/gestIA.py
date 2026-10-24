@@ -21,7 +21,8 @@ class gestIA :
 
         self.__model_reponse_ok = False
 
-        self.__downloader_model = model_downloader()
+        ia_os_dir = bool(getattr(gestionnaire.getConfigFile(), "ia_os_directory", False))
+        self.__downloader_model = model_downloader(ia_os_directory=ia_os_dir)
 
         self.__gest_user = gestionnaire.getUserConf()
 

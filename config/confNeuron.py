@@ -25,3 +25,4 @@ class confNeuron:
     fichierLangue:str = ""
     fichierKeyword:str = ""
     voiceAssistant:bool = False
+    ia_os_directory:bool = False
