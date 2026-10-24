@@ -66,7 +66,11 @@ class core_neuron(neuronBase):
                 else:
                     fnc_actu = self._gestFNC.getFNCActu()
                     if fnc_actu and fnc_actu.setActu(3):
-                        donnees = fnc_actu.get_actu_say() or str(fnc_actu.getActu())
+                        actu_say = fnc_actu.get_actu_say()
+                        if isinstance(actu_say, list) and actu_say and actu_say[0] != "error":
+                            donnees = actu_say[0]
+                        else:
+                            donnees = str(fnc_actu.getActu())
                     else:
                         donnees = "Impossible de récupérer les actualités pour le moment."
                     self._valeurOut = 1

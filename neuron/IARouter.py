@@ -128,17 +128,23 @@ class IARouter:
         return str(data)
 
     def __clean_json(self, text: str) -> str:
-        """Nettoie le markdown autour du JSON s'il y en a."""
+        if not text or not isinstance(text, str):
+            return ""
         text = text.strip()
         if text.startswith("```json"):
             text = text[7:]
         elif text.startswith("```"):
             text = text[3:]
-            
+
         if text.endswith("```"):
             text = text[:-3]
-            
-        return text.strip()
+
+        text = text.strip()
+        start_idx = text.find("{")
+        end_idx = text.rfind("}")
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            return text[start_idx:end_idx + 1]
+        return text
 
     def __prefilter_projet(self, requette: str):
         """
@@ -347,26 +353,61 @@ class IARouter:
         # 3. Parser la réponse JSON
         reponse_brute = self.__gestIA.get_reponse_ia()
         json_str = self.__clean_json(reponse_brute)
-        
+
         try:
             parsed = json.loads(json_str)
+            if not isinstance(parsed, dict):
+                self.__set_output(str(reponse_brute))
+                return True
         except (json.JSONDecodeError, TypeError):
             # L'IA n'a pas retourné du JSON valide → traiter comme texte brut
             self.__set_output(str(reponse_brute))
             return True
 
-        action = parsed.get("action", "")
-        args = parsed.get("args", [])
-        reponse = parsed.get("reponse", "")
+        action = str(parsed.get("action", "") or "").strip().lower()
+        raw_args = parsed.get("args", [])
+        if isinstance(raw_args, str):
+            args = [raw_args] if raw_args.strip() else []
+        elif isinstance(raw_args, dict):
+            args = [str(v) for v in raw_args.values() if v is not None]
+        elif isinstance(raw_args, list):
+            args = raw_args
+        else:
+            args = [str(raw_args)] if raw_args is not None else []
 
-        # 4. Dispatcher vers le bon handler
+        reponse = str(parsed.get("reponse", "") or "").strip()
+
+        # Si le petit modèle a mis sa réponse dans args[0] avec reponse_simple
+        if action == "reponse_simple" and not reponse and args:
+            reponse = " ".join(str(a) for a in args if a)
+            args = []
+
+        # 4. Rattrapage des sous-actions inventées comme action principale
         if action not in self.__dispatch:
             if action.startswith("projet_") or action.startswith("tableur_") or action.startswith("word_"):
                 args.insert(0, action)
                 action = "work"
-            elif action.startswith("git_") or action.startswith("doc_") or action.startswith("github_") or action in ["commit", "status"]:
+            elif action.startswith("git_") or action.startswith("doc_") or action.startswith("github_") or action in [
+                "commit", "status"]:
                 args.insert(0, action)
                 action = "codehelp"
+            elif action.startswith("tache_"):
+                args.insert(0, action.replace("tache_", "", 1))
+                action = "tache"
+            elif action.startswith("calendrier_"):
+                args.insert(0, action.replace("calendrier_", "", 1))
+                action = "calendrier"
+            elif action.startswith("horloge_"):
+                args.insert(0, action.replace("horloge_", "", 1))
+                action = "horloge"
+            elif action in ["chrono_start", "chrono_stop", "chrono_reset", "chrono_temps", "chrono_etat",
+                            "minuteur_start", "minuteur_stop", "minuteur_etat", "minuteur_temps"]:
+                args.insert(0, action)
+                action = "horloge"
+            elif action in ["addition", "soustraction", "multiplication", "division", "puissance", "modulo", "racine",
+                            "pythagore"]:
+                args.insert(0, action)
+                action = "calculatrice"
             elif action.startswith("memoire_") or action in [
                 "enregistrer", "enregistre", "retenir", "retiens", "ajouter", "ajoute",
                 "sauvegarder", "sauvegarde", "noter", "note", "memoriser", "mémoriser",
@@ -376,7 +417,9 @@ class IARouter:
             ]:
                 args.insert(0, action)
                 action = "memoire"
-                
+
+        req_lower = requette.lower()
+
         # Garde-fou RECHERCHE : n'ouvrir le navigateur que si l'utilisateur demande explicitement une recherche web
         if action == "recherche":
             mots_recherche_web = [
@@ -384,11 +427,33 @@ class IARouter:
                 "brave", "duckduckgo", "qwant", "ecosia", "perplexity", "moteur",
                 "sur le net", "en ligne"
             ]
-            req_lower = requette.lower()
             if not any(mot in req_lower for mot in mots_recherche_web):
                 action = "reponse_simple"
-                if not reponse and len(args) > 1 and args[1]:
-                    reponse = ""
+
+        # Garde-fou WORK / PROJET : éviter qu'une simple question de code appelle projet_ecrire_fichier sans projet ouvert
+        elif action == "work" and args:
+            sous_action = str(args[0]).lower()
+            actions_fichiers_projet = [
+                "projet_ecrire_fichier", "projet_creer_fichier", "projet_lire_fichier",
+                "projet_creer_dossier", "projet_executer_commande", "projet_lister_fichiers"
+            ]
+            fnc_work = self.__gestFNC.getFNCWork()
+            projet_ouvert = fnc_work.getEtatProject() if fnc_work else False
+            mots_explicites_projet = ["projet", "fichier", "dossier", "répertoire", "repertoire", "exécute", "execute",
+                                      "terminal"]
+            if sous_action in actions_fichiers_projet and not projet_ouvert and not any(
+                    m in req_lower for m in mots_explicites_projet):
+                action = "reponse_simple"
+
+        # Garde-fou MÉMOIRE : empêcher l'IA d'écrire/supprimer en mémoire si aucun mot de mémoire n'est dans la requête
+        elif action == "memoire":
+            mots_declencheurs_memoire = [
+                "retiens", "retenir", "rappelle", "rappeler", "souviens", "souvenir",
+                "souvenirs", "mémoire", "memoire", "mémorise", "memorise", "note", "noter",
+                "enregistre", "enregistrer", "oublie", "oublier", "efface", "effacer", "supprime"
+            ]
+            if not any(m in req_lower for m in mots_declencheurs_memoire):
+                action = "reponse_simple"
 
         if action in self.__dispatch:
             if action == "reponse_simple":
@@ -696,7 +761,10 @@ class IARouter:
             limit_int = 3
 
         if fnc.setActu(limit_int):
-            return fnc.get_actu_say() or fnc.getActu() or "Actualités récupérées.", 3
+            actu_say = fnc.get_actu_say()
+            if isinstance(actu_say, list) and actu_say and actu_say[0] != "error":
+                return actu_say[0], 3
+            return str(fnc.getActu() or "Actualités récupérées."), 3
         else:
             return "Impossible d'obtenir les actualités.", 1
 

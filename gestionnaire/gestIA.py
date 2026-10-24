@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import queue
 import threading
 from gestionnaire.gestion import gestionnaire
@@ -463,7 +464,6 @@ class gestIA :
             prompt += "\n" + add_prompt
 
         prompt += "\n" + self.__gestionnaire.getGestMemoire().getPromptContext()
-        prompt += "\n" + self.__gestionnaire.getGestSession().getPromptContext()
 
         prompt += """
             Règles strictes de décision :
@@ -539,17 +539,97 @@ class gestIA :
             self.__ia_loader.unload_help()
             if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
                 self.__ia_mode_enabled = True
-                
+
             premier_mot = mot_cle.split(" ")[0]
             mots_autorises = ["METEO", "TEMPERATURE", "ACTU", "RADIO", "HEURE", "ARRET", "MINUTEUR", "GUI"]
+            requete_lower = requete.lower().strip()
 
             if premier_mot in mots_autorises:
-                if premier_mot == "GUI":
-                    requete_lower = requete.lower()
+                # Garde-fou ARRET : éviter l'extinction sur une question ("comment arrêter une boucle...")
+                if premier_mot == "ARRET":
+                    mots_questions_code = [
+                        "comment", "pourquoi", "quand", "quel", "quelle", "qui",
+                        "boucle", "python", "script", "code", "programme", "fonction",
+                        "erreur", "processus", "service", "serveur"
+                    ]
+                    if any(m in requete_lower for m in mots_questions_code):
+                        return "COMPLEXE"
+                    mots_arret_requis = [
+                        "arret", "arrêt", "arrete", "arrête", "arreter", "arrêter",
+                        "stop", "stoppe", "eteins", "éteins", "eteindre", "éteindre",
+                        "ferme", "fermer", "quitte", "quitter", "au revoir", "aurevoir",
+                        "bye", "ciao", "adieu", "bonne nuit", "bonne soiree", "bonne soirée"
+                    ]
+                    if not any(m in requete_lower for m in mots_arret_requis):
+                        return "COMPLEXE"
+
+                # Garde-fou HEURE : rejeter les questions de durée ou d'horaires d'ouverture
+                elif premier_mot == "HEURE":
+                    faux_positifs_heure = [
+                        "combien d'heure", "combien d heure", "combien de jour",
+                        "ouvre", "ferme", "commence", "finit", "termine",
+                        "naissance", "création", "creation", "histoire", "km/h", "par heure"
+                    ]
+                    mots_temps = ["heure", "jour", "date", "aujourd'hui", "aujourd hui"]
+                    if any(fp in requete_lower for fp in faux_positifs_heure) or not any(
+                            m in requete_lower for m in mots_temps):
+                        return "COMPLEXE"
+
+                # Garde-fou METEO / TEMPERATURE : rejeter les questions scientifiques/cuisine/hardware
+                elif premier_mot in ("METEO", "TEMPERATURE"):
+                    faux_positifs_meteo = [
+                        "fusion", "ébullition", "ebullition", "corps", "humain", "fièvre", "fievre",
+                        "four", "cuisson", "recette", "cpu", "gpu", "processeur", "carte graphique", "eau"
+                    ]
+                    mots_meteo = [
+                        "meteo", "météo", "temps", "temperature", "température",
+                        "froid", "chaud", "pluie", "pleut", "pleuvoir", "neige",
+                        "soleil", "vent", "orage", "degre", "degré", "dehors",
+                        "prevision", "prévision", "alerte", "vigilance"
+                    ]
+                    if any(fp in requete_lower for fp in faux_positifs_meteo) or not any(
+                            m in requete_lower for m in mots_meteo):
+                        return "COMPLEXE"
+
+                # Garde-fou RADIO : rejeter les questions encyclopédiques ou "radioactivité"
+                elif premier_mot == "RADIO":
+                    faux_positifs_radio = [
+                        "radioactiv", "radiolog", "radiograph", "bouton radio",
+                        "qui a", "comment", "pourquoi", "qu'est-ce", "qu est ce", "histoire", "invent"
+                    ]
+                    mots_radio = [
+                        "radio", "nrj", "rtl", "rfm", "skyrock", "nostalgie", "fun radio",
+                        "europe 1", "europe 2", "france info", "france inter",
+                        "france musique", "france culture", "france bleu"
+                    ]
+                    if any(fp in requete_lower for fp in faux_positifs_radio) or not any(
+                            m in requete_lower for m in mots_radio):
+                        return "COMPLEXE"
+
+                # Garde-fou MINUTEUR : si une durée chiffrée ou un contrôle chrono est demandé, envoyer vers IARouter
+                elif premier_mot == "MINUTEUR":
+                    mots_minuteur = ["minuteur", "chrono", "chronomètre", "chronometre", "compte à rebours",
+                                     "compte a rebours", "timer"]
+                    if not any(m in requete_lower for m in mots_minuteur):
+                        return "COMPLEXE"
+                    if any(c.isdigit() for c in requete_lower) or "chrono" in requete_lower:
+                        return "COMPLEXE"
+
+                # Garde-fou ACTU (quand prédit par l'IA) : vérifier que ce n'est pas "actuellement" / "informatique"
+                elif premier_mot == "ACTU":
+                    if not re.search(
+                            r"\b(actualit[eé]s?|actus?|news|infos?|journal|nouvelles|presse)\b|quoi de neuf|quoi de nouveau",
+                            requete_lower):
+                        return "COMPLEXE"
+                    if "presse-papier" in requete_lower or "presse papier" in requete_lower:
+                        return "COMPLEXE"
+
+                # Garde-fou GUI
+                elif premier_mot == "GUI":
                     mots_declencheurs_gui = ["ouvre", "ouvrir", "montre", "montrer",
-                                              "affiche", "afficher", "lance", "lancer",
-                                              "démarre", "demarrer", "démarrer",
-                                              "active", "activer", "interface"]
+                                             "affiche", "afficher", "lance", "lancer",
+                                             "démarre", "demarrer", "démarrer",
+                                             "active", "activer", "interface"]
                     if not any(mot in requete_lower for mot in mots_declencheurs_gui):
                         return "COMPLEXE"
 
@@ -567,67 +647,56 @@ class gestIA :
                     for mot in mots_work_complexe:
                         if mot in requete_lower:
                             return "COMPLEXE"
+
                 return mot_cle
             else:
-                requete_lower = requete.lower()
-
-                # Garde-fou ACTU : si l'IA n'a pas reconnu une demande d'actus
-                mots_actu = ["actualité", "actualite", "actualités", "actualites",
-                             "actu", "actus", "news", "info", "infos",
-                             "journal", "nouvelles", "presse",
-                             "quoi de neuf", "quoi de nouveau"]
-                theme_map = {
-                    "tech": "TECH", "techno": "TECH", "technologie": "TECH",
-                    "science": "SCIENCE", "scientifique": "SCIENCE",
-                    "sport": "SPORT", "sportif": "SPORT", "sportive": "SPORT",
-                    "culture": "CULTURE", "culturel": "CULTURE", "culturelle": "CULTURE",
-                    "généraliste": "GENERALISTE", "generaliste": "GENERALISTE", "général": "GENERALISTE", "general": "GENERALISTE"
-                }
-                for mot_actu in mots_actu:
-                    if mot_actu in requete_lower:
+                # Garde-fou ACTU : mots entiers uniquement (\b) et pas d'action projet/système
+                mots_exclusion_actu = ["presse-papier", "presse papier", "projet", "fichier", "tache", "tâche",
+                                       "tableur", "word"]
+                if not any(excl in requete_lower for excl in mots_exclusion_actu):
+                    if re.search(
+                            r"\b(actualit[eé]s?|actus?|news|infos?|journal|nouvelles|presse)\b|quoi de neuf|quoi de nouveau",
+                            requete_lower):
+                        theme_map = {
+                            "tech": "TECH", "techno": "TECH", "technologie": "TECH",
+                            "science": "SCIENCE", "scientifique": "SCIENCE",
+                            "sport": "SPORT", "sportif": "SPORT", "sportive": "SPORT",
+                            "culture": "CULTURE", "culturel": "CULTURE", "culturelle": "CULTURE",
+                            "généraliste": "GENERALISTE", "generaliste": "GENERALISTE", "général": "GENERALISTE",
+                            "general": "GENERALISTE"
+                        }
                         theme_found = "TOUT"
                         for mot_theme, code_theme in theme_map.items():
-                            if mot_theme in requete_lower:
+                            if re.search(rf"\b{re.escape(mot_theme)}\b", requete_lower):
                                 theme_found = code_theme
                                 break
                         return f"ACTU {theme_found}"
 
                 # Garde-fou GUI : si l'IA n'a pas reconnu une demande d'ouverture d'interface
                 mots_declencheurs_gui = ["ouvre", "ouvrir", "montre", "montrer",
-                                          "affiche", "afficher", "lance", "lancer",
-                                          "démarre", "demarrer", "démarrer",
-                                          "active", "activer"]
+                                         "affiche", "afficher", "lance", "lancer",
+                                         "démarre", "demarrer", "démarrer",
+                                         "active", "activer"]
                 gui_map = {
-                    # Calculatrice
                     "calculatrice": "CALCULATRICE", "calculette": "CALCULATRICE", "calcul": "CALCULATRICE",
-                    # Lecture
                     "lecture": "LECTURE", "lecteur": "LECTURE",
-                    # Orthographe
                     "orthographe": "ORTHOGRAPHE", "correcteur": "ORTHOGRAPHE",
-                    # Traducteur
                     "traducteur": "TRADUCTEUR", "traduction": "TRADUCTEUR",
-                    # Agenda
                     "agenda": "AGENDA", "calendrier": "AGENDA",
-                    # Tâches
                     "tache": "TACHE", "tâche": "TACHE", "taches": "TACHE", "tâches": "TACHE",
                     "gestionnaire de tache": "TACHE", "gestionnaire de tâche": "TACHE",
-                    # Work
                     "arrera work": "WORK", "interface de travail": "WORK", "espace de travail": "WORK",
-                    # Download
                     "download": "DOWNLOAD", "téléchargement": "DOWNLOAD", "telechargement": "DOWNLOAD",
                     "arrera download": "DOWNLOAD",
                 }
 
-                # Vérifier qu'un mot déclencheur est présent
                 has_trigger = any(mot in requete_lower for mot in mots_declencheurs_gui)
                 if has_trigger:
-                    # Chercher le nom de GUI le plus long en premier (pour matcher "arrera work" avant "work")
                     for gui_name, gui_code in sorted(gui_map.items(), key=lambda x: len(x[0]), reverse=True):
                         if gui_name in requete_lower:
                             return f"GUI {gui_code}"
 
                 return "COMPLEXE"
-            
         except Exception as e:
             print(f"Erreur lors de la classification IA : {e}")
             self.__ia_loader.unload_help()
@@ -640,8 +709,37 @@ class gestIA :
             return ""
         return self.__submit_task(self.__internal_generate_final_response, requete, donnees_systeme)
 
+    def __clean_final_text(self, text: str) -> str:
+        """Nettoie les préfixes de rôles et hallucinations de tours suivants sur les petits modèles."""
+        if not text or not isinstance(text, str):
+            return ""
+        cleaned = text.strip().strip('"')
+
+        # Couper si le modèle tente de générer la suite du dialogue ou répète une balise système
+        for stop_marker in ["\nUtilisateur :", "\nUtilisateur:", "\nUser :", "\nUser:", "\n===", "=== "]:
+            if stop_marker in cleaned:
+                cleaned = cleaned.split(stop_marker, 1)[0].strip()
+
+        # Retirer les préfixes parasites (ex: "Assistant : ", "Opale : ", "Réponse : ")
+        conf_name = self.__gestionnaire.getConfigFile().name
+        prefixes = [
+            f"{conf_name} :", f"{conf_name}:",
+            "Assistant :", "Assistant:",
+            "Réponse :", "Réponse:", "Reponse :", "Reponse:"
+        ]
+        for pref in prefixes:
+            if cleaned.lower().startswith(pref.lower()):
+                cleaned = cleaned[len(pref):].strip()
+
+        return cleaned.strip('"').strip()
+
     def __internal_generate_final_response(self, requete: str, donnees_systeme: str) -> str:
         self.__ia_loader.unload_help()
+
+        if isinstance(donnees_systeme, list):
+            donnees_systeme = "\n".join(str(x) for x in donnees_systeme if x and str(x).strip() and str(x) != "error")
+        elif donnees_systeme is not None and not isinstance(donnees_systeme, str):
+            donnees_systeme = str(donnees_systeme)
 
         first_name_user = self.__gest_user.getFirstnameUser()
         last_name_user = self.__gest_user.getLastnameUser()
@@ -652,7 +750,12 @@ class gestIA :
         if requete.strip():
             if donnees_systeme and donnees_systeme.strip():
                 contexte_requete = f'L\'utilisateur t\'a demandé : "{requete}"\nInformations ou résultat retourné par le système : \n"{donnees_systeme}"'
-                tache = "Ta tâche : Formule une réponse naturelle, conversationnelle et complète pour l'utilisateur en intégrant ce résultat."
+                tache = (
+                    "Ta tâche : Formule une réponse naturelle, conversationnelle et complète pour l'utilisateur "
+                    "en te basant STRICTEMENT sur le résultat retourné par le système ci-dessus. "
+                    "Si ce résultat indique une erreur, une indisponibilité ou qu'il n'y a aucun élément (ex: aucune tâche, aucun événement), "
+                    "dis-le fidèlement sans JAMAIS inventer de données ni réutiliser d'anciens résultats de l'historique."
+                )
             else:
                 contexte_requete = f'L\'utilisateur t\'a demandé : "{requete}"'
                 tache = "Ta tâche : Réponds directement à la question ou remarque de l'utilisateur avec tes connaissances de manière naturelle, complète et polie."
@@ -679,7 +782,10 @@ class gestIA :
             {contexte_requete}
                         
             {tache}
-            N'invente pas de fausses informations techniques, mais sois fluide, poli et humain. Ne génère pas de JSON, réponds directement en texte brut.
+            RÈGLES STRICTES :
+            - N'utilise les souvenirs de l'utilisateur que s'ils ont un rapport direct avec sa demande.
+            - N'invente pas de fausses informations techniques, mais sois fluide, poli et humain.
+            - Ne génère pas de JSON et ne préfixe pas ta réponse par ton nom, réponds directement en texte brut.
             """
         
         try:
@@ -687,7 +793,7 @@ class gestIA :
             self.__ia_loader.unload_help()
             if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
                 self.__ia_mode_enabled = True
-            return reponse.strip().replace('"',"")
+            return self.__clean_final_text(reponse)
         except Exception as e:
             print(f"Erreur lors de la génération de la réponse finale : {e}")
             self.__ia_loader.unload_help()

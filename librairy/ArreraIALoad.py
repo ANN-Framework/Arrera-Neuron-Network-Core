@@ -13,32 +13,55 @@ class ArreraIALoad:
         self.__system_instructions = []
 
     # Methode private
+    # Methode private
     def __predict_gguf_model(self, prompt, max_tokens=512, enable_consigne_langue: bool = True, as_json: bool = True):
         if enable_consigne_langue:
             consigne_langue = "\n\n(Réponds impérativement en français, même si je parle anglais ou technique)."
         else:
             consigne_langue = ""
 
+        user_content = prompt + consigne_langue
         messages = []
+        fallback_messages = []
 
         if self.__system_context_is_loaded and len(self.__system_instructions) > 0:
             combined_system_prompt = "Utilise les informations suivantes pour aider l'utilisateur :\n\n"
             combined_system_prompt += "\n\n---\n\n".join(self.__system_instructions)
-            
-            final_prompt = combined_system_prompt + "\n\n---\n\nRequête utilisateur : " + prompt + consigne_langue
-            messages.append({"role": "user", "content": final_prompt})
+
+            messages.append({"role": "system", "content": combined_system_prompt})
+            messages.append({"role": "user", "content": user_content})
+
+            final_prompt = combined_system_prompt + "\n\n---\n\nRequête utilisateur : " + user_content
+            fallback_messages.append({"role": "user", "content": final_prompt})
         else:
-            messages.append({"role": "user", "content": prompt + consigne_langue})
+            messages.append({"role": "user", "content": user_content})
+            fallback_messages = messages
 
         kwargs = {
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": 0.1,
+            "top_p": 0.9,
+            "repeat_penalty": 1.15,
         }
         if as_json:
             kwargs["response_format"] = {"type": "json_object"}
+        else:
+            kwargs["stop"] = [
+                "\nUtilisateur :",
+                "\nUtilisateur:",
+                "\nUser :",
+                "\nUser:",
+                "\nDemande actuelle de l'utilisateur :",
+                "=== L'UTILISATEUR ===",
+                "=== TA PERSONNALITÉ ===",
+            ]
 
-        output = self.__model.create_chat_completion(**kwargs)
+        try:
+            output = self.__model.create_chat_completion(**kwargs)
+        except Exception:
+            kwargs["messages"] = fallback_messages
+            output = self.__model.create_chat_completion(**kwargs)
 
         return output['choices'][0]['message']['content']
 

@@ -83,12 +83,12 @@ class gestFNC:
             self.__work = fncArreraWork(self.__gestionnaire)
 
             self.__prompt += """
-                           - "work": Args ["action", "p1", "p2", "p3"]. 
-                             Actions tableur : tableur_ouvrir, tableur_fermer, tableur_lire, tableur_ecrire, tableur_supprimer, tableur_formule, tableur_etat, tableur_ouvrir_interface.
-                             Actions word : word_ouvrir, word_fermer, word_lire, word_ecrire, word_etat, word_ouvrir_interface.
-                             Actions projet : projet_lister, projet_creer, projet_ouvrir, projet_fermer, projet_etat, projet_lister_fichiers, projet_creer_dossier(p1=dossier), projet_ecrire_fichier(p1=fichier_ou_chemin, p2=contenu), projet_lire_fichier(p1=fichier), projet_executer_commande(p1=commande), projet_tache_ajouter, projet_tache_terminer.
-                             RÈGLE FICHIER : Pour TOUTE création de script (ex: main.py), de code ou de fichier avec contenu, utilise OBLIGATOIREMENT "projet_ecrire_fichier".
-                           """
+                               - "work": Args ["action", "p1", "p2", "p3"]. 
+                                 Actions tableur : tableur_ouvrir, tableur_fermer, tableur_lire, tableur_ecrire, tableur_supprimer, tableur_formule, tableur_etat, tableur_ouvrir_interface.
+                                 Actions word : word_ouvrir, word_fermer, word_lire, word_ecrire, word_etat, word_ouvrir_interface.
+                                 Actions projet : projet_lister, projet_creer, projet_ouvrir, projet_fermer, projet_etat, projet_lister_fichiers, projet_creer_dossier(p1=dossier), projet_ecrire_fichier(p1=fichier_ou_chemin, p2=contenu), projet_lire_fichier(p1=fichier), projet_executer_commande(p1=commande), projet_tache_ajouter, projet_tache_terminer.
+                                 RÈGLE FICHIER : Utilise "projet_ecrire_fichier" UNIQUEMENT si l'utilisateur demande explicitement de créer ou modifier un fichier dans un projet. Pour une simple explication ou question de code dans la discussion, utilise "reponse_simple".
+                               """
 
         if conf.etatService == 1 :
             from fnc.fonctionCalculatrice import fncCalculatrice
@@ -116,16 +116,15 @@ class gestFNC:
                 - "recherche": Ouvre le navigateur web externe pour lancer une recherche internet. À utiliser UNIQUEMENT si l'utilisateur demande explicitement de faire une recherche sur Google, sur internet ou sur le web (ex: "cherche sur Google", "fais une recherche internet", "recherche sur le web"). Ne JAMAIS utiliser pour de simples questions de connaissances ou de discussion. Args ["moteur", "requete"]. moteurs: recherche, google, brave, duckduckgo, qwant, ecosia, bing, perplexity, amazon, big_recherche.
                 """
 
-        if conf.etatOpen == 1 :
+        if conf.etatOpen == 1:
             from fnc.fonctionOPEN import fonctionOpen
             from fnc.fonctionArreraDownload import fncArreraVideoDownload
             self.__open = fonctionOpen(self.__gestionnaire)
             self.__downloader_youtube = fncArreraVideoDownload(self.__gestionnaire)
 
             self.__prompt += """
-                - "codehelp": Args ["action", "p1"]. 
-                  Actions Git : git_init (initialiser un dépôt Git dans le projet en cours), git_status (vérifier l'état Git), git_add, git_commit(p1=message), git_log.
-                  Actions Web/Doc : doc_devdoc, doc_microsoft, doc_python, github_search, github_site, gui_color, gui_github, gui_librairy, gui_git.
+                - "open": Args ["action", "cible"]. actions: logiciel, site_enregistre, url, ouvrir_interface, lister_logiciels, lister_sites, lister_radios, doc_assistant.
+                - "download_youtube": Args ["mode", "url"]. mode: 1 (vidéo+audio), 2 (audio seul), ouvrir_interface.
                 """
 
         if conf.etatCodehelp == 1 :
