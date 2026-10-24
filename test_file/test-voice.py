@@ -146,7 +146,7 @@ def test_trigger_word():
 
 def test_play_file():
     print("\n--- Test Lecture de fichier audio (sounddevice / soundfile) ---")
-    sound_path = "asset/sound/micro.mp3"
+    sound_path = "../asset/sound/micro.mp3"
     custom_path = input(f"Chemin du fichier (Appuyez sur Entrée pour '{sound_path}') : ").strip()
     if custom_path:
         sound_path = custom_path
