@@ -425,6 +425,15 @@ class gestUserSetting:
     def get_model_downloaded(self):
         return self.__gestionnaire.getGestIA().get_list_model_download()
 
+    def download_custom_ia_model(self, name: str, url: str, description: str = "") -> bool:
+        return self.__gestionnaire.getGestIA().download_custom_model(name, url, description)
+
+    def get_recommended_ia_model(self) -> str:
+        return self.__gestionnaire.getGestIA().get_recommended_model()
+
+    def get_hardware_ia_recommendation(self) -> dict:
+        return self.__gestionnaire.getGestIA().get_hardware_recommendation()
+
     def get_list_voice_available(self):
         return self.__gestionnaire.getArrVoice().get_list_voice_model()
 

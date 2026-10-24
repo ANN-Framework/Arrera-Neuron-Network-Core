@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from gestionnaire.gestion import gestionnaire,confNeuron
 
 conf = confNeuron(name="Opale",
@@ -348,17 +353,20 @@ def main():
                         pass
             case 14 :
                 print("IA")
-                out = input("1. Voir le model\n"
+                out = input("1. Voir le model actif\n"
                             "2. Choisir le model\n"
-                            "3. Download un model\n"
+                            "3. Download un model du catalogue\n"
                             "4. Voir les model telecharger\n"
                             "5. Modele dans le dossier\n"
                             "6. Supprimer un modele\n"
+                            "7. Voir le catalogue complet (9 modèles + descriptions)\n"
+                            "8. Voir la recommandation matérielle (meilleur modèle pour ce PC)\n"
+                            "9. Télécharger un modèle personnalisé (lien direct .gguf)\n"
                             "0. Rien faire\n"
                             "Choix : ")
                 match out:
                     case "1":
-                        pass # Ajoutez l'affichage du modèle ici, ex: print(user.get_ia_model())
+                        print(f"Modèle actif : {user.get_ia_model()}")
                     case "2":
                         model = input("Model : ")
                         user.set_ia_model(model)
@@ -382,6 +390,29 @@ def main():
                             print("Model supprimer")
                         else :
                             print("Impossible de supprimer le model")
+                    case "7":
+                        print("\n--- Catalogue officiel des modèles IA ---")
+                        for m in user.get_list_model_ia_available():
+                            name_m, url_m, desc_m = user.get_data_model_ia_available(m)
+                            print(f"- [{m}] {name_m} : {desc_m}")
+                    case "8":
+                        hw = user.get_hardware_ia_recommendation()
+                        print("\n--- Recommandation matérielle ---")
+                        print(f"Catégorie PC        : {hw.get('category')}")
+                        print(f"RAM détectée        : {hw.get('ram_gb')} Go")
+                        print(f"VRAM GPU détectée   : {hw.get('vram_gb')} Go")
+                        print(f"Coeurs CPU          : {hw.get('cpu_cores')}")
+                        print(f"Modèle recommandé   : {user.get_recommended_ia_model()}")
+                        print(f"Modèles compatibles : {hw.get('compatible_models')}")
+                    case "9":
+                        name = input("Nom du modèle personnalisé (ex: mon-modele) : ")
+                        url = input("Lien direct .gguf (ou lien HuggingFace) : ")
+                        desc = input("Description (optionnel) : ")
+                        print("Téléchargement et vérification GGUF en cours...")
+                        if user.download_custom_ia_model(name, url, desc):
+                            print("Téléchargement terminé avec succès ! Modèles téléchargés :", user.get_model_downloaded())
+                        else:
+                            print("Erreur : impossible de télécharger le modèle (vérifiez le nom et le lien .gguf).")
                     case "0":
                         pass
 

@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import json
 from config.confNeuron import confNeuron
 from brain.brain import ABrain
@@ -345,6 +350,26 @@ def test_ia_os_directory():
     print("==========================================================\n")
 
 
+def test_catalogue_et_recommandation(brain: ABrain):
+    user = brain.getGestionnaire().getUserConf()
+    print("\n======== TEST DU CATALOGUE (9 MODÈLES) & RECOMMANDATION MATÉRIELLE ========")
+    print("1. Catalogue officiel (9 modèles : 3 Gemma 4, 3 Mistral, 3 Qwen 2.5) :")
+    for m in user.get_list_model_ia_available():
+        name_m, url_m, desc_m = user.get_data_model_ia_available(m)
+        print(f"   - [{m:13s}] {name_m}")
+        print(f"     Description : {desc_m}")
+
+    hw = user.get_hardware_ia_recommendation()
+    print("\n2. Détection matérielle & Recommandation automatique :")
+    print(f"   - Catégorie PC        : {hw.get('category')}")
+    print(f"   - RAM détectée        : {hw.get('ram_gb')} Go")
+    print(f"   - VRAM GPU détectée   : {hw.get('vram_gb')} Go")
+    print(f"   - Coeurs CPU          : {hw.get('cpu_cores')}")
+    print(f"   - Modèle recommandé   : {user.get_recommended_ia_model()}")
+    print(f"   - Modèles compatibles : {hw.get('compatible_models')}")
+    print("===========================================================================\n")
+
+
 def main():
     brain = init_brain()
     while True:
@@ -357,6 +382,7 @@ def main():
         print("4. Mode interactif (inspecter Passe 0 / Passe 1 / Passe 2)")
         print("5. Tester les optimisations IA (Pré-filtre 0ms, Lazy Load, Auto-Unload RAM)")
         print("6. Tester ia_os_directory (/arrera/ia_model sous Fedora Linux)")
+        print("7. Tester le nouveau catalogue (9 modèles) et la recommandation matérielle")
         print("0. Quitter")
         choix = input("\nVotre choix : ").strip()
 
@@ -372,6 +398,8 @@ def main():
             test_optimisations_ia(brain)
         elif choix == "6":
             test_ia_os_directory()
+        elif choix == "7":
+            test_catalogue_et_recommandation(brain)
         elif choix == "0":
             brain.shutdown()
             break

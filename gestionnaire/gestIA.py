@@ -888,10 +888,7 @@ class gestIA :
         return self.__downloader_model.get_model_on_dir()
 
     def gest_data_model(self,model:str):
-        if model in self.get_list_model_available():
-            return self.__downloader_model.get_data_model(model)
-        else :
-            return None,None,None
+        return self.__downloader_model.get_data_model(model)
 
     def get_list_model_download(self):
         return self.__downloader_model.get_model_download()
@@ -901,3 +898,12 @@ class gestIA :
 
     def del_model(self,model:str):
         return self.__downloader_model.del_model(model)
+
+    def download_custom_model(self, name: str, url: str, description: str = "") -> bool:
+        return self.__downloader_model.download_custom_model(name, url, description)
+
+    def get_recommended_model(self) -> str:
+        return self.__downloader_model.get_recommended_model()
+
+    def get_hardware_recommendation(self) -> dict:
+        return self.__downloader_model.get_hardware_recommendation()
