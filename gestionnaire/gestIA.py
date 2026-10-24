@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 import queue
 import threading
 from gestionnaire.gestion import gestionnaire
@@ -34,12 +35,15 @@ class gestIA :
 
         self.__additional_instructions: list[str] = []
 
-        # Gestion de la file d'attente et du multi-threading pour l'IA
+        # Gestion de la file d'attente, du Lazy Loading et de l'Auto-Unload
         self.__task_queue = queue.Queue()
         self.__ia_lock = threading.Lock()
         self.__worker_thread = None
         self.__running = False
         self.__is_processing = False
+        self.__active_model_path = None
+        self.__idle_timeout = 180
+        self.__last_used_time = 0.0
 
     def __start_worker(self):
         if not self.__running:
@@ -54,22 +58,44 @@ class gestIA :
             self.__worker_thread.join(timeout=1.0)
             self.__worker_thread = None
 
+    def __ensure_model_loaded(self):
+        if self.__ia_loader is not None and not self.__ia_loader.is_model_loaded():
+            if self.__active_model_path and os.path.isfile(self.__active_model_path):
+                self.__ia_loader.load_model_gguf(
+                    model_path=self.__active_model_path,
+                    n_ctx=3072
+                )
+
+    def set_idle_timeout(self, seconds: int):
+        self.__idle_timeout = max(0, int(seconds))
+
     def __worker_loop(self):
         while self.__running:
             try:
                 task = self.__task_queue.get(timeout=0.5)
             except queue.Empty:
+                # Auto-Unload : si le modèle est chargé et inactif depuis __idle_timeout secondes
+                if (
+                    self.__idle_timeout > 0
+                    and self.__ia_loader is not None
+                    and self.__ia_loader.is_model_loaded()
+                    and self.__last_used_time > 0
+                    and (time.time() - self.__last_used_time) >= self.__idle_timeout
+                ):
+                    with self.__ia_lock:
+                        self.__ia_loader.unload_model(keep_instructions=True)
+                        self.__last_used_time = 0.0
                 continue
-
             if task is None:
                 self.__task_queue.task_done()
                 break
-
             func, args, kwargs, result_holder, completion_event = task
             self.__is_processing = True
             try:
                 with self.__ia_lock:
+                    self.__ensure_model_loaded()
                     res = func(*args, **kwargs)
+                    self.__last_used_time = time.time()
                     result_holder['result'] = res
                     result_holder['success'] = True
             except Exception as e:
@@ -107,12 +133,13 @@ class gestIA :
         return self.__is_processing or not self.__task_queue.empty()
 
     def unloadIA(self):
-        """Désinstancie proprement le worker et le modèle IA en mémoire."""
         self.stop_worker()
         if self.__ia_loader is not None:
-            self.__ia_loader.unload_model()
+            self.__ia_loader.unload_model(keep_instructions=False)
             del self.__ia_loader
             self.__ia_loader = None
+        self.__active_model_path = None
+        self.__last_used_time = 0.0
         self.__ia_mode_enabled = False
 
     def loadIA(self):
@@ -121,16 +148,17 @@ class gestIA :
         if model_name != "":
             try:
                 if model_name in self.get_list_model_download():
-                    # Si un modèle est déjà chargé, on le désinstancie d'abord
+                    model_path = self.__downloader_model.get_path_model(model_name)
+                    if not model_path or not os.path.isfile(model_path):
+                        self.unloadIA()
+                        return False
+                    # Si un modèle est déjà configuré, on le nettoie d'abord
                     if self.__ia_loader is not None or self.__ia_mode_enabled:
                         self.unloadIA()
-
+                    self.__active_model_path = model_path
                     self.__ia_loader = ArreraIALoad()
-                    self.__ia_loader.load_model_gguf(
-                        model_path=self.__downloader_model.get_path_model(model_name),
-                        n_ctx=8192
-                    )
-
+                    # Lazy Loading : on prépare uniquement le prompt système au boot.
+                    # Les poids GGUF seront chargés automatiquement à la 1ère requête dans __worker_loop.
                     prompt_dynamique = self.__generate_main_prompt()
                     if self.__ia_loader.add_system_instruction(prompt_dynamique):
                         self.__ia_mode_enabled = True
@@ -142,11 +170,10 @@ class gestIA :
                 else:
                     self.unloadIA()
                     return False
-            except Exception as e:
-                #print(f"Erreur fatale dans loadIA : {e}")
+            except Exception:
                 self.unloadIA()
                 return False
-        else :
+        else:
             self.unloadIA()
             return False
 
@@ -263,13 +290,13 @@ class gestIA :
             return False
         return self.__submit_task(self.__internal_correted_text, text)
 
-    def __internal_correted_text(self,text:str):
-        self.__ia_loader.unload_help()
-
+    def __internal_correted_text(self, text: str):
         try:
-            with open(self.__dir_ia_instruction+"prompt_orthographe.txt", 'r', encoding='utf-8') as f:
+            with open(self.__dir_ia_instruction + "prompt_orthographe.txt", 'r', encoding='utf-8') as f:
                 content = f.read()
-            raw_reponse = self.__ia_loader.send_request(content+"\n"+text, False)
+            raw_reponse = self.__ia_loader.send_request(
+                content + "\n" + text, False, True, max_tokens=512, use_system_context=False
+            )
             try:
                 parsed = json.loads(raw_reponse)
                 if "texte_corrige" in parsed:
@@ -280,15 +307,10 @@ class gestIA :
                 self.__reponse_ia = raw_reponse
 
             self.__model_reponse_ok = True
-            self.__ia_loader.unload_help()
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             return True
 
         except Exception as e:
             self.__model_reponse_ok = False
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             print(e)
             return False
 
@@ -299,7 +321,6 @@ class gestIA :
         return self.__submit_task(self.__internal_create_mail, objet, instructions, signature)
 
     def __internal_create_mail(self, objet: str, instructions: str = "", signature: str = ""):
-        self.__ia_loader.unload_help()
         try:
             with open(self.__dir_ia_instruction + "prompt_mail_creation.txt", 'r', encoding='utf-8') as f:
                 instruction = f.read()
@@ -310,18 +331,15 @@ class gestIA :
             if signature:
                 prompt += f"Expéditeur / Signature : {signature}\n"
 
-            raw_reponse = self.__ia_loader.send_request(instruction + "\n\n" + prompt, False, True)
+            raw_reponse = self.__ia_loader.send_request(
+                instruction + "\n\n" + prompt, False, True, max_tokens=512, use_system_context=False
+            )
             data = self.__extract_json_dict(raw_reponse)
             self.__reponse_ia = data
             self.__model_reponse_ok = True if data is not None else False
-            self.__ia_loader.unload_help()
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             return data
         except Exception as e:
             self.__model_reponse_ok = False
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             print(f"Erreur create_mail IA : {e}")
             return None
 
@@ -332,24 +350,20 @@ class gestIA :
         return self.__submit_task(self.__internal_correct_mail, objet, mail)
 
     def __internal_correct_mail(self, objet: str, mail: str):
-        self.__ia_loader.unload_help()
         try:
             with open(self.__dir_ia_instruction + "prompt_mail_correction.txt", 'r', encoding='utf-8') as f:
                 instruction = f.read()
 
             prompt = f"Objet : {objet}\n\nCorps du mail :\n{mail}"
-            raw_reponse = self.__ia_loader.send_request(instruction + "\n\n" + prompt, False, True)
+            raw_reponse = self.__ia_loader.send_request(
+                instruction + "\n\n" + prompt, False, True, max_tokens=512, use_system_context=False
+            )
             data = self.__extract_json_dict(raw_reponse)
             self.__reponse_ia = data
             self.__model_reponse_ok = True if data is not None else False
-            self.__ia_loader.unload_help()
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             return data
         except Exception as e:
             self.__model_reponse_ok = False
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             print(f"Erreur correct_mail IA : {e}")
             return None
 
@@ -360,7 +374,6 @@ class gestIA :
         return self.__submit_task(self.__internal_reply_mail, objet, mail_recu, consigne_reponse, signature)
 
     def __internal_reply_mail(self, objet: str, mail_recu: str, consigne_reponse: str, signature: str = ""):
-        self.__ia_loader.unload_help()
         try:
             with open(self.__dir_ia_instruction + "prompt_mail_reponse.txt", 'r', encoding='utf-8') as f:
                 instruction = f.read()
@@ -369,18 +382,15 @@ class gestIA :
             if signature:
                 prompt += f"Expéditeur / Signature : {signature}\n"
 
-            raw_reponse = self.__ia_loader.send_request(instruction + "\n\n" + prompt, False, True)
+            raw_reponse = self.__ia_loader.send_request(
+                instruction + "\n\n" + prompt, False, True, max_tokens=512, use_system_context=False
+            )
             data = self.__extract_json_dict(raw_reponse)
             self.__reponse_ia = data
             self.__model_reponse_ok = True if data is not None else False
-            self.__ia_loader.unload_help()
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             return data
         except Exception as e:
             self.__model_reponse_ok = False
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             print(f"Erreur reply_mail IA : {e}")
             return None
 
@@ -393,8 +403,6 @@ class gestIA :
         return self.__submit_task(self.__internal_deduplicate_actu, articles)
 
     def __internal_deduplicate_actu(self, articles: list) -> list:
-        self.__ia_loader.unload_help()
-
         try:
             with open(self.__dir_ia_instruction + "prompt_dedoublonnage.txt", 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -408,13 +416,13 @@ class gestIA :
                 truncated_articles.append(new_art)
 
             articles_json = json.dumps(truncated_articles, ensure_ascii=False)
-            
             if len(articles_json) > 10000:
                 articles_json = articles_json[:10000] + '...}]'
-                
-            request_text = f"{content}\n\n{articles_json}"
 
-            raw_reponse = self.__ia_loader.send_request(request_text, False)
+            request_text = f"{content}\n\n{articles_json}"
+            raw_reponse = self.__ia_loader.send_request(
+                request_text, False, True, max_tokens=512, use_system_context=False
+            )
 
             start_idx = raw_reponse.find('[')
             end_idx = raw_reponse.rfind(']')
@@ -425,18 +433,12 @@ class gestIA :
                 if isinstance(clean_articles, list):
                     self.__reponse_ia = raw_reponse
                     self.__model_reponse_ok = True
-                    self.__ia_loader.unload_help()
-                    if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                        self.__ia_mode_enabled = True
                     return clean_articles
 
         except Exception as e:
             print(f"Erreur lors du dédoublonnage par l'IA : {e}")
 
         self.__model_reponse_ok = False
-        self.__ia_loader.unload_help()
-        if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-            self.__ia_mode_enabled = True
         return articles
 
     def __generate_main_prompt(self):
@@ -475,14 +477,93 @@ class gestIA :
             """
         return prompt
 
+    def __fast_preclassify(self, requete: str):
+        """
+        Pré-classification déterministe en Python pur (0 ms, 0 appel LLM).
+        Retourne l'intent directement si la demande est non-ambiguë, ou None s'il faut interroger le LLM.
+        """
+        req_lower = requete.lower().strip()
+        # 1. Commandes PROJET ou MÉMOIRE déjà gérées par les pré-filtres de IARouter -> direct COMPLEXE sans Passe 0 LLM
+        mots_prefiltre_complexe = [
+            "ouvre le projet", "ouvrir le projet", "ouvre mon projet", "lance le projet",
+            "ferme le projet", "fermer le projet", "quitte le projet",
+            "crée le projet", "créer le projet", "cree le projet", "creer le projet",
+            "crée un projet", "créer un projet", "cree un projet", "creer un projet", "nouveau projet",
+            "liste mes projets", "lister mes projets", "liste les projets", "mes projets", "quels sont mes projets",
+            "liste mes souvenirs", "lister mes souvenirs", "mes souvenirs", "quels sont mes souvenirs",
+            "qu'as tu retenu", "qu as tu retenu", "qu'est ce que tu sais sur moi", "que sais tu sur moi",
+            "efface toute ta memoire", "efface toute ta mémoire", "vide ta memoire", "vide ta mémoire", "oublie tout",
+            "retiens que ", "retiens qu'", "rappelle toi que ", "rappelle-toi que ",
+            "garde en memoire", "garde en mémoire", "memorise que ", "mémorise que ",
+            "oublie le souvenir ", "supprime le souvenir ", "efface le souvenir "
+        ]
+        if any(m in req_lower for m in mots_prefiltre_complexe):
+            return "COMPLEXE"
+        # 2. Détection directe HEURE (si formulation explicite sans faux positifs)
+        patterns_heure_directe = [
+            "quelle heure est il", "quelle heure est-il", "il est quelle heure",
+            "donne moi l'heure", "donne-moi l'heure", "donne l'heure",
+            "quel jour sommes nous", "quel jour sommes-nous", "quel jour on est",
+            "quelle est la date", "la date d'aujourd'hui", "la date du jour"
+        ]
+        if any(p in req_lower for p in patterns_heure_directe):
+            return "HEURE"
+        # 3. Détection directe ACTU (avec mots entiers et sans mots d'exclusion ni questions encyclopédiques)
+        mots_exclusion_actu = [
+            "presse-papier", "presse papier", "projet", "fichier", "tache", "tâche",
+            "tableur", "word", "sur le langage", "sur python", "sur linux", "comment", "pourquoi", "qui est"
+        ]
+        if not any(excl in req_lower for excl in mots_exclusion_actu):
+            if re.search(r"\b(actualit[eé]s?|actus?|news|journal|nouvelles|presse)\b|quoi de neuf|quoi de nouveau", req_lower):
+                theme_map = {
+                    "tech": "TECH", "techno": "TECH", "technologie": "TECH",
+                    "science": "SCIENCE", "scientifique": "SCIENCE",
+                    "sport": "SPORT", "sportif": "SPORT", "sportive": "SPORT",
+                    "culture": "CULTURE", "culturel": "CULTURE", "culturelle": "CULTURE",
+                    "généraliste": "GENERALISTE", "generaliste": "GENERALISTE", "général": "GENERALISTE", "general": "GENERALISTE"
+                }
+                theme_found = "TOUT"
+                for mot_theme, code_theme in theme_map.items():
+                    if re.search(rf"\b{re.escape(mot_theme)}\b", req_lower):
+                        theme_found = code_theme
+                        break
+                return f"ACTU {theme_found}"
+        # 4. Détection directe GUI (verbe d'ouverture + nom d'interface, sans mots complexes de projet/fichier)
+        mots_declencheurs_gui = [
+            "ouvre", "ouvrir", "montre", "montrer", "affiche", "afficher",
+            "lance", "lancer", "démarre", "demarrer", "démarrer", "active", "activer"
+        ]
+        mots_work_complexe = [
+            "projet", "project", "tableur", "excel", "word", "docx", "ferme",
+            "crée", "cree", "créer", "creer", "liste", "lister", "fichier", "dossier",
+            "repertoire", "code", "commande", "script", "terminal", "git", "commit",
+            "init", "dépôt", "depot", "status", "main", "python", "retiens", "souvenir",
+            "memoire", "rappelle", "oublie", "noter", "note", "enregistre"
+        ]
+        if any(mot in req_lower for mot in mots_declencheurs_gui) and not any(m in req_lower for m in mots_work_complexe):
+            gui_map = {
+                "calculatrice": "CALCULATRICE", "calculette": "CALCULATRICE",
+                "lecture": "LECTURE", "lecteur": "LECTURE",
+                "orthographe": "ORTHOGRAPHE", "correcteur": "ORTHOGRAPHE",
+                "traducteur": "TRADUCTEUR", "traduction": "TRADUCTEUR",
+                "agenda": "AGENDA", "calendrier": "AGENDA",
+                "gestionnaire de tache": "TACHE", "gestionnaire de tâche": "TACHE",
+                "arrera work": "WORK", "interface de travail": "WORK", "espace de travail": "WORK",
+                "arrera download": "DOWNLOAD",
+            }
+            for gui_name, gui_code in sorted(gui_map.items(), key=lambda x: len(x[0]), reverse=True):
+                if gui_name in req_lower:
+                    return f"GUI {gui_code}"
+        return None
     def classify_intent(self, requete: str) -> str:
         if not self.__ia_mode_enabled:
             return "COMPLEXE"
+        fast_intent = self.__fast_preclassify(requete)
+        if fast_intent is not None:
+            return fast_intent
         return self.__submit_task(self.__internal_classify_intent, requete)
 
     def __internal_classify_intent(self, requete: str) -> str:
-        self.__ia_loader.unload_help()
-        
         prompt_classification = f"""Tu es un classificateur d'intention ultra-rapide.
             Analyse la phrase suivante et réponds STRICTEMENT avec l'un des formats suivants (en majuscules, séparé par des espaces) :
             
@@ -533,12 +614,10 @@ class gestIA :
         """
 
         try:
-            reponse = self.__ia_loader.send_request(prompt_classification, False, False)
+            reponse = self.__ia_loader.send_request(
+                prompt_classification, False, False, max_tokens=20, use_system_context=False
+            )
             mot_cle = reponse.strip().upper()
-            
-            self.__ia_loader.unload_help()
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
 
             premier_mot = mot_cle.split(" ")[0]
             mots_autorises = ["METEO", "TEMPERATURE", "ACTU", "RADIO", "HEURE", "ARRET", "MINUTEUR", "GUI"]
@@ -699,9 +778,6 @@ class gestIA :
                 return "COMPLEXE"
         except Exception as e:
             print(f"Erreur lors de la classification IA : {e}")
-            self.__ia_loader.unload_help()
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             return "COMPLEXE"
 
     def generate_final_response(self, requete: str, donnees_systeme: str) -> str:
@@ -734,8 +810,6 @@ class gestIA :
         return cleaned.strip('"').strip()
 
     def __internal_generate_final_response(self, requete: str, donnees_systeme: str) -> str:
-        self.__ia_loader.unload_help()
-
         if isinstance(donnees_systeme, list):
             donnees_systeme = "\n".join(str(x) for x in donnees_systeme if x and str(x).strip() and str(x) != "error")
         elif donnees_systeme is not None and not isinstance(donnees_systeme, str):
@@ -789,16 +863,12 @@ class gestIA :
             """
         
         try:
-            reponse = self.__ia_loader.send_request(prompt_passe2, False, False)
-            self.__ia_loader.unload_help()
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
+            reponse = self.__ia_loader.send_request(
+                prompt_passe2, False, False, max_tokens=384, use_system_context=False
+            )
             return self.__clean_final_text(reponse)
         except Exception as e:
             print(f"Erreur lors de la génération de la réponse finale : {e}")
-            self.__ia_loader.unload_help()
-            if self.__ia_loader.add_system_instruction(self.__generate_main_prompt()):
-                self.__ia_mode_enabled = True
             return "Une erreur est survenue lors de la formulation de la réponse."
 
     def get_state_ia_reponse(self):

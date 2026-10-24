@@ -1,6 +1,9 @@
+import ctypes
 import gc
 import os
 from llama_cpp import Llama
+from librairy.dectectionOS import OS
+
 
 class ArreraIALoad:
     def __init__(self):
@@ -11,10 +14,29 @@ class ArreraIALoad:
         self.__is_loaded = False
         self.__system_context_is_loaded = False
         self.__system_instructions = []
+        self.__os = OS()
 
     # Methode private
-    # Methode private
-    def __predict_gguf_model(self, prompt, max_tokens=512, enable_consigne_langue: bool = True, as_json: bool = True):
+    def __release_os_memory(self):
+        """Force l'OS (Linux, Windows, macOS) à récupérer immédiatement la RAM libérée par C++/GGUF."""
+        try:
+            if self.__os.osLinux():
+                ctypes.CDLL("libc.so.6").malloc_trim(0)
+            elif self.__os.osWindows():
+                ctypes.windll.kernel32.SetProcessWorkingSetSize(-1, -1, -1)
+            elif self.__os.osMac():
+                ctypes.CDLL("libSystem.B.dylib").malloc_zone_pressure_relief(None, 0)
+        except Exception:
+            pass
+
+    def __predict_gguf_model(
+        self,
+        prompt: str,
+        max_tokens: int = 512,
+        enable_consigne_langue: bool = True,
+        as_json: bool = True,
+        use_system_context: bool = True,
+    ):
         if enable_consigne_langue:
             consigne_langue = "\n\n(Réponds impérativement en français, même si je parle anglais ou technique)."
         else:
@@ -24,7 +46,7 @@ class ArreraIALoad:
         messages = []
         fallback_messages = []
 
-        if self.__system_context_is_loaded and len(self.__system_instructions) > 0:
+        if use_system_context and self.__system_context_is_loaded and len(self.__system_instructions) > 0:
             combined_system_prompt = "Utilise les informations suivantes pour aider l'utilisateur :\n\n"
             combined_system_prompt += "\n\n---\n\n".join(self.__system_instructions)
 
@@ -66,14 +88,15 @@ class ArreraIALoad:
         return output['choices'][0]['message']['content']
 
     # Methode public
+    def is_model_loaded(self) -> bool:
+        return self.__is_loaded and self.__model is not None
 
-    def add_system_instruction(self, instruction:str):
+    def add_system_instruction(self, instruction: str):
         if instruction.strip():
             self.__system_instructions.append(instruction)
             self.__system_context_is_loaded = True
             return True
         return False
-
 
     def load_help_file(self, file_path: str):
         if os.path.exists(file_path):
@@ -92,8 +115,8 @@ class ArreraIALoad:
         self.__system_context_is_loaded = False
         self.__system_instructions = []
 
-    def unload_model(self):
-        """Désinstancie proprement le modèle Llama chargé en mémoire."""
+    def unload_model(self, keep_instructions: bool = False):
+        """Désinstancie proprement le modèle Llama chargé en mémoire et rend la RAM à l'OS."""
         if self.__model is not None:
             try:
                 if hasattr(self.__model, 'close'):
@@ -103,23 +126,34 @@ class ArreraIALoad:
             del self.__model
             self.__model = None
             gc.collect()
+            self.__release_os_memory()
         self.__is_loaded = False
-        self.__system_context_is_loaded = False
-        self.__system_instructions = []
+        if not keep_instructions:
+            self.__system_context_is_loaded = False
+            self.__system_instructions = []
 
-    def load_model_gguf(self, model_path:str, n_ctx:int=2048):
+    def load_model_gguf(self, model_path: str, n_ctx: int = 3072):
         if not os.path.exists(model_path):
             raise ValueError(f"Le fichier modèle n'existe pas : {model_path}")
 
-        # Si un modèle est déjà chargé, le désinstancier d'abord
+        # Si un modèle est déjà chargé, le désinstancier d'abord en conservant les instructions
         if self.__is_loaded or self.__model is not None:
-            self.unload_model()
+            self.unload_model(keep_instructions=True)
+
+        cpu_count = os.cpu_count() or 4
+        # Garde 1 à 2 threads libres pour ne pas bloquer l'interface ou l'OS sur les petits PC
+        n_threads = max(1, cpu_count - 2) if cpu_count > 2 else max(1, cpu_count)
 
         try:
             self.__model = Llama(
                 model_path=model_path,
                 n_ctx=n_ctx,
+                n_threads=n_threads,
+                n_threads_batch=n_threads,
+                n_batch=256,
                 n_gpu_layers=0,
+                use_mmap=True,
+                use_mlock=False,
                 verbose=False
             )
 
@@ -129,5 +163,12 @@ class ArreraIALoad:
             self.__is_loaded = False
             raise ValueError(f"Erreur lors du chargement : {e}")
 
-    def send_request(self, sentence: str, consigne_langue: bool = True, as_json: bool = True):
-        return self.__predict_gguf_model(sentence, 512, consigne_langue, as_json)
+    def send_request(
+        self,
+        sentence: str,
+        consigne_langue: bool = True,
+        as_json: bool = True,
+        max_tokens: int = 512,
+        use_system_context: bool = True,
+    ):
+        return self.__predict_gguf_model(sentence, max_tokens, consigne_langue, as_json, use_system_context)
