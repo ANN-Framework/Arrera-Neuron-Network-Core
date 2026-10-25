@@ -7,6 +7,8 @@ from brain.brain import ABrain
 from librairy.dectectionOS import OS
 import sys
 import os
+import time
+import threading
 from datetime import datetime
 
 
@@ -24,6 +26,8 @@ class Opale:
         self.__config = None
         self.__assistantBrain = None
         self.__running = False
+        self.__lock = threading.Lock()
+        self.__updateThread = None
 
     def active(self):
         """
@@ -96,8 +100,39 @@ class Opale:
         except Exception as e:
             print(f"\n[Opale] : Erreur lors du boot ({e})\n")
 
+    def __updateLoop(self):
+        """
+        Boucle de mise à jour en arrière-plan (équivalent du timer GUI)
+        pour traiter les événements Socket (Arrera-Interface & Arrera Markdown) en mode Headless.
+        """
+        while self.__running:
+            try:
+                with self.__lock:
+                    if not self.__running or self.__assistantBrain is None:
+                        break
+                    has_event = self.__assistantBrain.updateAssistant()
+                    if has_event:
+                        nb = self.__assistantBrain.getValeurSortie()
+                        texte = self.__assistantBrain.getListSortie()
+                        reponse = texte[0] if texte and len(texte) > 0 else ""
+
+                        if reponse:
+                            print(f"\r\n[Opale (Socket)] : {reponse}\nVous > ", end="", flush=True)
+                        self.__addLog(nb, reponse, "[Socket/Update]")
+
+                        if nb == 15:
+                            print("\r\nArrêt de l'assistant demandé via Socket...")
+                            self.__close()
+                            os._exit(0)
+            except Exception as e:
+                print(f"\r\n[Erreur updateAssistant] : {e}\nVous > ", end="", flush=True)
+            time.sleep(0.2)
+
     def __consoleLoop(self):
         self.__running = True
+        self.__updateThread = threading.Thread(target=self.__updateLoop, daemon=True)
+        self.__updateThread.start()
+
         print("Entrez votre message ci-dessous (ou tapez 'stop' / 'quitter' pour fermer) :\n")
 
         while self.__running:
@@ -108,30 +143,36 @@ class Opale:
 
                 if requette.lower() in ["quitter", "exit", "quit"] or self.__assistantBrain.is_stop_assistant_requette(requette):
                     print("\nArrêt demandé...")
-                    self.__close()
+                    with self.__lock:
+                        self.__close()
                     break
 
-                self.__assistantBrain.neuron(requette)
-                nb = self.__assistantBrain.getValeurSortie()
-                texte = self.__assistantBrain.getListSortie()
-                reponse = texte[0] if texte and len(texte) > 0 else ""
+                with self.__lock:
+                    self.__assistantBrain.neuron(requette)
+                    nb = self.__assistantBrain.getValeurSortie()
+                    texte = self.__assistantBrain.getListSortie()
+                    reponse = texte[0] if texte and len(texte) > 0 else ""
 
                 print(f"\n[Opale] : {reponse}\n")
                 self.__addLog(nb, reponse, requette)
 
                 if nb == 15:
                     print("\nArrêt de l'assistant...")
-                    self.__close()
+                    with self.__lock:
+                        self.__close()
                     break
 
             except (KeyboardInterrupt, EOFError):
                 print("\nInterruption détectée.")
-                self.__close()
+                with self.__lock:
+                    self.__close()
                 break
             except Exception as e:
                 print(f"Erreur pendant l'exécution : {e}")
 
     def __close(self):
+        if not self.__running:
+            return
         self.__running = False
         if self.__assistantBrain is not None:
             try:

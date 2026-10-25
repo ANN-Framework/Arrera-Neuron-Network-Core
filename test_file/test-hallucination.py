@@ -370,6 +370,51 @@ def test_catalogue_et_recommandation(brain: ABrain):
     print("===========================================================================\n")
 
 
+def test_sockets_et_interfaces(brain: ABrain):
+    from neuron.interface import interface
+    from neuron.markdown import neuroneMarkdown
+
+    gest = brain.getGestionnaire()
+    print("\n======== TEST DES NEURONES SOCKET (INTERFACE & MARKDOWN) ========")
+
+    # 1. Vérification du nettoyage de gestion.py et fonctionOPEN.py
+    clean_gest = not hasattr(gest, "getNameMode") and not hasattr(gest, "getModeIsEnabled")
+    clean_open = not hasattr(gest.getGestFNC().getFNCOpen(), "openSaveWebSiteSocket")
+    print(f"1. Nettoyage code mort (gestion.py & fonctionOPEN.py) : {'[OK]' if (clean_gest and clean_open) else '[ECHEC]'}")
+
+    # 2. Test de neuron/interface.py
+    n_inter = interface(gest)
+    n_inter.neurone("opensoft")
+    rep_open = n_inter.getListSortie()[0]
+    val_open = n_inter.getValeurSortie()
+    n_inter.neurone("stop")
+    val_stop = n_inter.getValeurSortie()
+    ok_inter = (val_open == 1 and bool(rep_open) and val_stop == 15)
+    print(f"2. Neurone Arrera-Interface (opensoft / stop)        : {'[OK]' if ok_inter else '[ECHEC]'}")
+    print(f"   - Réponse 'opensoft' (val={val_open}) : {rep_open}")
+    print(f"   - Code sortie 'stop' (attendu 15) : {val_stop}")
+
+    # 3. Test de neuron/markdown.py (sans crash getPhraseMarkdownt)
+    class _MockSocket:
+        def __init__(self):
+            self.sent = []
+        def send_data_with_server_to(self, target, data):
+            self.sent.append((target, data))
+            return True
+
+    n_md = neuroneMarkdown(gest)
+    mock_sock = _MockSocket()
+    n_md._neuroneMarkdown__socket = mock_sock
+    n_md.neurone("corection Bonjour comment vas tu aujourd'hui")
+    rep_md = n_md.getListSortie()[0]
+    ok_md = (n_md.getValeurSortie() == 1 and bool(rep_md))
+    print(f"3. Neurone Arrera Markdown (corection sans crash)    : {'[OK]' if ok_md else '[ECHEC]'}")
+    print(f"   - Réponse assistant : {rep_md}")
+    if mock_sock.sent:
+        print(f"   - Envoyé au socket  : {mock_sock.sent[0][0]} -> {mock_sock.sent[0][1][:80]}")
+    print("=================================================================\n")
+
+
 def main():
     brain = init_brain()
     while True:
@@ -383,6 +428,7 @@ def main():
         print("5. Tester les optimisations IA (Pré-filtre 0ms, Lazy Load, Auto-Unload RAM)")
         print("6. Tester ia_os_directory (/arrera/ia_model sous Fedora Linux)")
         print("7. Tester le nouveau catalogue (9 modèles) et la recommandation matérielle")
+        print("8. Tester les neurones Socket (Arrera-Interface & Arrera Markdown)")
         print("0. Quitter")
         choix = input("\nVotre choix : ").strip()
 
@@ -400,6 +446,8 @@ def main():
             test_ia_os_directory()
         elif choix == "7":
             test_catalogue_et_recommandation(brain)
+        elif choix == "8":
+            test_sockets_et_interfaces(brain)
         elif choix == "0":
             brain.shutdown()
             break

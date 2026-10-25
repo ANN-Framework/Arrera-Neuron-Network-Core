@@ -68,10 +68,6 @@ class gestionnaire:
         self.__oldRequette = ""
         self.__oldSorti = ""
 
-        # Mode interface
-        self.__nameMode = {}
-        self.__modeIsEnabled = False
-
     def boot(self):
         if self.__userConf.getHist() == 1:
             if self.__gestHist.loadHist():
@@ -294,28 +290,3 @@ class gestionnaire:
             self.__breef_afternoon = False
             self.__breef_evening = False
             return True
-
-    def getNameMode(self):
-        return self.__nameMode
-
-    def setNameMode(self,requette:str):
-        try :
-            requette = requette.replace("namemode","").strip()
-            parts = requette.lstrip("|").split("|")
-
-            result = {}
-            for part in parts:
-                key, value = part.split(":", 1)
-                result[key] = value.lower()
-
-            self.__nameMode = result
-            return True
-        except Exception as e :
-            #print(e)
-            return False
-
-    def getModeIsEnabled(self)->bool:
-        return self.__modeIsEnabled
-
-    def setModeIsEnabled(self,etat:bool):
-        self.__modeIsEnabled = etat

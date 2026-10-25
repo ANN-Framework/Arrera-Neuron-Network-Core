@@ -58,62 +58,31 @@ class fonctionOpen(fncBase):
     def openSaveWebSiteAssistant(self, name) -> bool:
         if name == "":
             return False
-
         dictWeb = self._gestionnaire.getDictionnaireWeb()
         if name in dictWeb:
             url = dictWeb[name]
-        else :
+        else:
             return False
-
         return wb.open(url)
-
-    def openSaveWebSiteSocket(self, name) -> bool:
-        if name == "":
-            return False
-
-        dictWeb = self._gestionnaire.getDictionnaireWeb()
-        if name in dictWeb:
-            url = dictWeb[name]
-        else :
-            return False
-
-        if not self.__socketEnabled:
-            return False
-
-        return self.__socket.send_data_with_clien("website " + url)
 
     def openSaveWebSite(self, name) -> int:
         """
         :param name:
-        :return: 1 if website opened with assistant, 2 if website opened with socket, 0 if not opened
+        :return: 1 if website opened with assistant, 0 if not opened
         """
         if name == "":
             return 0
         if self.openSaveWebSiteAssistant(name):
             return 1
-        elif self.__socketEnabled:
-            if self.openSaveWebSiteSocket(name):
-                return 2
-            else :
-                return 0
-        else:
-            return 0
+        return 0
 
     def openWebSite(self, url:str) -> int:
         """
         :param url:
-        :return: 1 if website opened with assistant, 2 if website opened with socket, 0 if not opened
+        :return: 1 if website opened with assistant, 0 if not opened
         """
         if url == "":
-            return False
-
-        if not self.__socketEnabled:
-            if wb.open(url):
-                return 1
-            else:
-                return 0
-        else:
-            if self.__socket.send_data_with_clien("website " + url):
-                return 2
-            else:
-                return 0
+            return 0
+        if wb.open(url):
+            return 1
+        return 0

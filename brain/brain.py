@@ -69,7 +69,7 @@ class ABrain :
 
     def boot(self):
         return self.__gestionnaire.boot()
-    
+
     def shutdown(self):
         hour = datetime.now().hour
         text = self.__gestLangue.aurevoir(hour)
@@ -80,7 +80,6 @@ class ABrain :
                 self.__gestSocket.stop_socket_client()
 
             if self.__gestSocket.get_server_is_on():
-                self.__gestSocket.broadcast_data_with_server("closed")
                 self.__gestSocket.stop_socket_server()
         self.__gestionnaire.getGestHist().saveHist()
         self.__gestionnaire.getGestSession().clearSession()
@@ -260,7 +259,8 @@ class ABrain :
         # Ajouter la partie mise a jour du socket
         self.__gestionnaire.updateDate()
         if (time(0,0) <= datetime.now().time() < time(11,0) and not
-        self.__gestionnaire.get_state_morning_brief() and self.__gestNeuron.getBrief()):
+        self.__gestionnaire.get_state_morning_brief() and self.__gestNeuron.getBrief() and
+        self.__gestionnaire.has_gui()):
             self.__gestionnaire.set_state_morning_brief()
             try:
                 response = self.__gestIA.generate_final_response("","Annonce-lui que son brief du matin est prêt.")
@@ -272,7 +272,8 @@ class ABrain :
             self.__valeurOut = 5
             return True
         elif (time(11,0) <= datetime.now().time() < time(16,0) and not
-        self.__gestionnaire.get_state_afternoon_brief() and self.__gestNeuron.getBrief()):
+        self.__gestionnaire.get_state_afternoon_brief() and self.__gestNeuron.getBrief() and
+        self.__gestionnaire.has_gui()):
             self.__gestionnaire.set_state_afternoon_brief()
             try:
                 response = self.__gestIA.generate_final_response("","Annonce-lui que son brief de l'après-midi est prêt.")
@@ -284,7 +285,8 @@ class ABrain :
             self.__valeurOut = 5
             return True
         elif (time(16,0) <= datetime.now().time() and not
-        self.__gestionnaire.get_state_evening_brief() and self.__gestNeuron.getBrief()):
+        self.__gestionnaire.get_state_evening_brief() and self.__gestNeuron.getBrief() and
+        self.__gestionnaire.has_gui()):
             self.__gestionnaire.set_state_evening_brief()
             try:
                 response = self.__gestIA.generate_final_response("","Annonce-lui que son brief de la soirée est prêt.")
@@ -317,19 +319,16 @@ class ABrain :
             elif self.__gestSocket.get_message_is_received_form_client():
                 if self.__gestionnaire.getKeywordObjet().checkInterface(
                         self.__gestSocket.get_message_form_client(), "requette"):
-                    mots = self.__gestionnaire.getKeywordObjet().getListKeyword("interface","requette")
+                    mots = self.__gestionnaire.getKeywordObjet().getListKeyword("interface", "requette")
                     message = self.__gestSocket.get_message_form_client().replace(mots[0], "").strip()
                     self.neuron(message)
                     return True
-                elif self.__gestionnaire.getKeywordObjet().checkInterface(self.__gestSocket.get_message_form_client(), "namemode"):
-                    self.__gestionnaire.setNameMode(self.__gestSocket.get_message_form_client())
-                    return False
                 else:
                     message = self.__gestSocket.get_message_form_client()
                     self.__gestNeuron.ninterface.neurone(message)
                     self.__listOut = self.__gestNeuron.ninterface.getListSortie()
                     self.__valeurOut = self.__gestNeuron.ninterface.getValeurSortie()
-                    return  True
+                    return True
             else :
                 return False
         else :

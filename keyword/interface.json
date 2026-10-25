@@ -7,14 +7,5 @@
   "task": ["task"],
   "agenda": ["agenda"],
   "close": ["stop"],
-  "requette": ["requette : "],
-  "modeone": ["mode-one-launch name:"],
-  "modetwo": ["mode-two-launch name:"],
-  "modetheer": ["mode-theer-launch name:"],
-  "modefoor": ["mode-four-launch name:"],
-  "modefive": ["mode-five-launch name:"],
-  "modesix": ["mode-six-launch name:"],
-  "namemode": ["namemode"],
-  "errorlaunchmode": ["error launch mode"],
-  "closemode": ["close mode"]
+  "requette": ["requette : "]
 }
