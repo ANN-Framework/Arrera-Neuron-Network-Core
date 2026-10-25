@@ -496,7 +496,11 @@ class gestIA :
             "efface toute ta memoire", "efface toute ta mémoire", "vide ta memoire", "vide ta mémoire", "oublie tout",
             "retiens que ", "retiens qu'", "rappelle toi que ", "rappelle-toi que ",
             "garde en memoire", "garde en mémoire", "memorise que ", "mémorise que ",
-            "oublie le souvenir ", "supprime le souvenir ", "efface le souvenir "
+            "oublie le souvenir ", "supprime le souvenir ", "efface le souvenir ",
+            "ouvre le fichier arrera markdown", "ouvrir le fichier arrera markdown",
+            "ouvre le markdown du projet", "ouvrir le markdown du projet",
+            "ouvre l'arrera markdown du projet", "ouvre arrera markdown du projet",
+            "ouvre dans arrera markdown", "ouvrir dans arrera markdown"
         ]
         if any(m in req_lower for m in mots_prefiltre_complexe):
             return "COMPLEXE"

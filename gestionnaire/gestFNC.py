@@ -86,8 +86,8 @@ class gestFNC:
                                - "work": Args ["action", "p1", "p2", "p3"]. 
                                  Actions tableur : tableur_ouvrir, tableur_fermer, tableur_lire, tableur_ecrire, tableur_supprimer, tableur_formule, tableur_etat, tableur_ouvrir_interface.
                                  Actions word : word_ouvrir, word_fermer, word_lire, word_ecrire, word_etat, word_ouvrir_interface.
-                                 Actions projet : projet_lister, projet_creer, projet_ouvrir, projet_fermer, projet_etat, projet_lister_fichiers, projet_creer_dossier(p1=dossier), projet_ecrire_fichier(p1=fichier_ou_chemin, p2=contenu), projet_lire_fichier(p1=fichier), projet_executer_commande(p1=commande), projet_tache_ajouter, projet_tache_terminer.
-                                 RÈGLE FICHIER : Utilise "projet_ecrire_fichier" UNIQUEMENT si l'utilisateur demande explicitement de créer ou modifier un fichier dans un projet. Pour une simple explication ou question de code dans la discussion, utilise "reponse_simple".
+                                 Actions projet : projet_lister, projet_creer, projet_ouvrir, projet_fermer, projet_etat, projet_lister_fichiers, projet_creer_fichier(p1=nom_sans_extension, p2=type: excel|word|odt|markdown|amd), projet_creer_dossier(p1=dossier), projet_ecrire_fichier(p1=fichier_ou_chemin, p2=contenu), projet_lire_fichier(p1=fichier), markdown_ouvrir_fichier(p1=nom_ou_chemin_fichier_ou_vide_pour_projet), projet_executer_commande(p1=commande), projet_tache_ajouter, projet_tache_terminer.
+                                 RÈGLE FICHIER : Utilise "projet_creer_fichier" (type="amd" pour un fichier Arrera Markdown) ou "projet_ecrire_fichier" UNIQUEMENT si l'utilisateur demande explicitement de créer ou modifier un fichier dans un projet. Utilise "markdown_ouvrir_fichier" si l'utilisateur demande d'ouvrir le fichier Arrera Markdown du projet ou un fichier .amd/.md dans Arrera Markdown.
                                """
 
         if conf.etatService == 1 :

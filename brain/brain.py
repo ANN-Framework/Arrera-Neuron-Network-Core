@@ -299,6 +299,13 @@ class ABrain :
             return True
         elif self.__gestSocket is not None:
             if self.__gestSocket.get_new_client_is_connected():
+                new_client = self.__gestSocket.get_name_new_client()
+                if new_client == "arrera_markdown":
+                    fnc_work = self.__gestionnaire.getGestFNC().getFNCWork()
+                    if fnc_work is not None:
+                        pending_file = fnc_work.popPendingMarkdownFile()
+                        if pending_file:
+                            self.__gestSocket.send_data_with_server_to("arrera_markdown", f"openfile {pending_file}")
                 self.__listOut = ["soft connected",""]
                 self.__valeurOut = 1
                 return True

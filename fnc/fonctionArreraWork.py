@@ -33,6 +33,7 @@ class fncArreraWork(fncBase):
         # Varriable Projet
         self.__folderProject = ""
         self.__lastCreateFile = ""
+        self.__pendingMarkdownFile = ""
         self.__listFileProjet = []
         self.__fncTaskProjet = None  # Correspont au tache du projet
         self.__listTaskProjetToday = []
@@ -283,21 +284,31 @@ class fncArreraWork(fncBase):
         else :
             return None
 
+    def _ensureProjectMarkdownFile(self, project_name: str) -> str:
+        if not self.__projectOpen or not self.__folderProject or not project_name:
+            return ""
+        amd_path = os.path.join(self.__folderProject, f"{project_name}.amd")
+        if not os.path.isfile(amd_path):
+            try:
+                with open(amd_path, "w", encoding="utf-8") as f:
+                    f.write(f"# {project_name}\n\n")
+            except Exception:
+                return ""
+        return amd_path
+
     def openProjet(self, project: str):
         if not self.__projectOpen:
             wordEmplacement = self._gestionnaire.getWorkEmplacement()
             dossier = [d for d in os.listdir(wordEmplacement) if os.path.isdir(os.path.join(wordEmplacement, d))]
             for i in range(0, len(dossier)):
                 if project == dossier[i]:
-                    # Ecriture de l'emplacement du projet
                     self.__folderProject = wordEmplacement + "/" + project
-                    # Ouverture du fichier de config
                     self.__jsonFileProject = jsonWork(
                         os.path.join(self.__folderProject + "/.arreraProjet", project + ".apr"))
-                    # Mise de la var a true
                     self.__projectOpen = True
-                    # Ouverture fichier de tache
                     self.__fncTaskProjet = self._gestionnaire.getGestFNC().initTaskProject(self.__folderProject + "/.arreraProjet/TaskProjet.json")
+                    self._ensureProjectMarkdownFile(project)
+                    self.setlistFileProject()
                     return True
             return False
         else:
@@ -332,6 +343,9 @@ class fncArreraWork(fncBase):
                     self.__projectOpen = True
                     # Ouverture fichier de tache
                     self.__fncTaskProjet = self._gestionnaire.getGestFNC().initTaskProject(taskPath)
+                    # Génération automatique du fichier <name>.amd du projet
+                    self._ensureProjectMarkdownFile(name)
+                    self.setlistFileProject()
                     return True
                 except Exception as e:
                     return False
@@ -372,6 +386,98 @@ class fncArreraWork(fncBase):
         else:
             return False
 
+    def getNameTypeFileWithExtension(self):
+        return {"excel": "xlsx",
+                "word": "docx",
+                "Open Document Texte": "odt",
+                "markdown": "md",
+                "Arrera Markdown": "amd",
+                "Arrera Postite": ".ab"}
+
+    def getListTypeFileName(self):
+        return list(self.getNameTypeFileWithExtension().keys())
+
+    def getListTypeFileExtension(self):
+        return list(self.getNameTypeFileWithExtension().values())
+
+    def createFileProject(self, name: str, type: str):
+        if self.__projectOpen and name != "" and type != "":
+            type_clean = type.strip()
+            if (
+                    type_clean in self.getListTypeFileName()
+                    or type_clean in self.getListTypeFileExtension()
+                    or type_clean.lower() in ("arrera markdown", "arrera_markdown", "amd", ".amd")
+            ):
+                emplacement = self.__folderProject + "/"
+                if type_clean == "excel" or type_clean == "xlsx":
+                    try:
+                        self.__lastCreateFile = name + ".xlsx"
+                        wb = Workbook()
+                        ws = wb.active
+                        ws.title = name
+                        ws['A1'] = ""
+                        wb.save(emplacement + self.__lastCreateFile)
+                        del ws
+                        wb.close()
+                        del wb
+                        return True
+                    except Exception:
+                        return False
+                elif type_clean == "word" or type_clean == "docx":
+                    try:
+                        self.__lastCreateFile = name + '.docx'
+                        doc = Document()
+                        doc.add_paragraph("")
+                        doc.save(emplacement + self.__lastCreateFile)
+                        return True
+                    except Exception:
+                        return False
+                elif type_clean == "Open Document Texte" or type_clean == "odt":
+                    try:
+                        self.__lastCreateFile = name + ".odt"
+                        doc = OpenDocumentText()
+                        p1 = P(text="")
+                        doc.text.addElement(p1)
+                        doc.save(emplacement + self.__lastCreateFile)
+                        return True
+                    except Exception:
+                        return False
+                elif type_clean == "markdown" or type_clean == "md":
+                    try:
+                        self.__lastCreateFile = name + ".md"
+                        filePath = os.path.join(emplacement, self.__lastCreateFile)
+                        with open(filePath, "w", encoding="utf-8") as file:
+                            file.write("File readme named " + name)
+                        return True
+                    except Exception:
+                        return False
+                elif type_clean.lower() in ("arrera markdown", "arrera_markdown", "amd", ".amd"):
+                    try:
+                        clean_name = name[:-4] if name.lower().endswith(".amd") else name
+                        self.__lastCreateFile = clean_name + ".amd"
+                        filePath = os.path.join(emplacement, self.__lastCreateFile)
+                        with open(filePath, "w", encoding="utf-8") as file:
+                            file.write(f"# {clean_name}\n\n")
+                        self.setlistFileProject()
+                        return True
+                    except Exception:
+                        return False
+                elif type_clean == "Arrera Postite" or type_clean == ".ab":
+                    try:
+                        self.__lastCreateFile = name + ".ab"
+                        filePath = os.path.join(emplacement, self.__lastCreateFile)
+                        with open(filePath, "w", encoding="utf-8") as file:
+                            file.write("# File Arrera Postiste named " + name)
+                        return True
+                    except Exception:
+                        return False
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
+
     def getTypeProjet(self):
         if self.__projectOpen:
             return self.__jsonFileProject.getContentJsonFlag("type")
@@ -383,86 +489,6 @@ class fncArreraWork(fncBase):
             return self.__jsonFileProject.getContentJsonFlag("name")
         else:
             return None
-
-    def getNameTypeFileWithExtension(self):
-        return {"excel": "xlsx",
-                "word": "docx",
-                "Open Document Texte": "odt",
-                "markdown": "md",
-                "Arrera Postite":".ab"}
-
-    def getListTypeFileName(self):
-        return list(self.getNameTypeFileWithExtension().keys())
-
-    def getListTypeFileExtension(self):
-        return list(self.getNameTypeFileWithExtension().values())
-
-    def createFileProject(self,name: str,type:str):
-        if self.__projectOpen and name != "" and type != "":
-            if type in self.getListTypeFileName() or type in self.getListTypeFileExtension():
-                emplacement = self.__folderProject + "/"
-                if type == "excel" or type == "xlsx":
-                    try :
-                        self.__lastCreateFile = name + ".xlsx"
-                        wb = Workbook()
-                        ws = wb.active
-                        ws.title = name
-                        ws['A1'] = ""
-                        wb.save(emplacement + self.__lastCreateFile)
-                        del ws
-                        wb.close()
-                        del wb
-                        return True
-                    except Exception as e:
-                        # print(e)
-                        return False
-                elif type == "word" or type == "docx":
-                    try :
-                        self.__lastCreateFile = name + '.docx'
-                        doc = Document()
-                        doc.add_paragraph("")
-                        doc.save(emplacement + self.__lastCreateFile)
-                        return True
-                    except Exception as e:
-                        # print(e)
-                        return False
-                elif type == "Open Document Texte" or type == "odt":
-                    try :
-                        self.__lastCreateFile = name + ".odt"
-                        doc = OpenDocumentText()
-                        p1 = P(text="")
-                        doc.text.addElement(p1)
-                        doc.save(emplacement + self.__lastCreateFile)
-                        return True
-                    except Exception as e:
-                        # print(e)
-                        return False
-                elif type == "markdown" or type == "md":
-                    try :
-                        self.__lastCreateFile = name + ".md"
-                        filePath = os.path.join(emplacement, self.__lastCreateFile)
-                        with open(filePath, "w", encoding="utf-8") as file:
-                            file.write("File readme named " + name)
-                        return True
-                    except Exception as e:
-                        # print(e)
-                        return False
-                elif type == "Arrera Postite" or type == ".ab":
-                    try :
-                        self.__lastCreateFile = name + ".ab"
-                        filePath = os.path.join(emplacement, self.__lastCreateFile)
-                        with open(filePath, "w", encoding="utf-8") as file:
-                            file.write("# File Arrera Postiste named " + name)
-                        return True
-                    except Exception as e:
-                        # print(e)
-                        return False
-                else :
-                    return False
-            else :
-                return False
-        else :
-            return False
 
     def setlistFileProject(self):
         if self.__projectOpen:
@@ -657,6 +683,69 @@ class fncArreraWork(fncBase):
             return False, f"Erreur : La commande a dépassé le délai maximal de {timeout}s."
         except Exception as e:
             return False, f"Erreur lors de l'exécution : {e}"
+
+    def popPendingMarkdownFile(self) -> str:
+        """Récupère et consomme le fichier en attente d'ouverture dans Arrera Markdown."""
+        pending = self.__pendingMarkdownFile
+        self.__pendingMarkdownFile = ""
+        return pending
+
+    def openFileArreraMarkdown(self, file_name_or_path: str = "") -> tuple[bool, str]:
+        target_path = None
+        raw_arg = (file_name_or_path or "").strip()
+        # 1. Résolution dans le projet actif si un projet est ouvert
+        if self.__projectOpen and self.__folderProject:
+            proj_name = self.getNameProjet() or os.path.basename(self.__folderProject)
+            # Si aucun fichier n'est précisé ou si l'argument désigne le fichier du projet
+            if not raw_arg or raw_arg.lower() in ("projet", "du projet", "markdown", "arrera markdown",
+                                                  proj_name.lower()):
+                target_path = self._ensureProjectMarkdownFile(proj_name)
+            else:
+                candidates = [raw_arg]
+                if not raw_arg.lower().endswith((".amd", ".md")):
+                    candidates.append(raw_arg + ".amd")
+                    candidates.append(raw_arg + ".md")
+                for cand in candidates:
+                    safe = self._resolve_safe_path(cand)
+                    if safe and os.path.isfile(safe):
+                        target_path = safe
+                        break
+        # 2. Fallback hors projet (chemin direct ou dans le dossier de travail)
+        if target_path is None and raw_arg:
+            expanded = os.path.expanduser(raw_arg)
+            if os.path.isfile(expanded):
+                target_path = os.path.realpath(expanded)
+            else:
+                work_dir = self._gestionnaire.getWorkEmplacement()
+                if work_dir:
+                    for ext in ("", ".amd", ".md"):
+                        cand_path = os.path.join(work_dir, raw_arg + ext)
+                        if os.path.isfile(cand_path):
+                            target_path = os.path.realpath(cand_path)
+                            break
+        if not target_path or not os.path.isfile(target_path):
+            if not self.__projectOpen and not raw_arg:
+                return False, "Erreur : Aucun projet n'est ouvert et aucun fichier n'a été précisé."
+            return False, f"Erreur : Le fichier '{raw_arg}' est introuvable."
+        # 3. Envoi via le serveur WebSocket (port 6780) si Arrera Markdown est connecté
+        sock = self._gestionnaire.getSocketObjet()
+        if sock is not None and sock.get_server_is_on():
+            if sock.is_client_connected_to_server("arrera_markdown"):
+                sock.send_data_with_server_to("arrera_markdown", f"openfile {target_path}")
+                return True, f"Le fichier '{os.path.basename(target_path)}' a été ouvert dans Arrera Markdown."
+            # 4. Si Arrera Markdown n'est pas encore lancé, on met le fichier en attente et on tente de lancer l'application
+            self.__pendingMarkdownFile = target_path
+            fnc_open = self._gestionnaire.getGestFNC().getFNCOpen()
+            launched = False
+            if fnc_open is not None:
+                for soft_key in ("arrera_markdown", "arrera markdown", "arreramarkdown", "arrera-markdown", "markdown"):
+                    if fnc_open.openSoft(soft_key):
+                        launched = True
+                        break
+            if launched:
+                return True, f"Lancement d'Arrera Markdown et ouverture du fichier '{os.path.basename(target_path)}'."
+            return True, f"Le fichier '{os.path.basename(target_path)}' sera ouvert dès le lancement d'Arrera Markdown."
+        return False, "Erreur : Le serveur Socket de l'assistant n'est pas actif."
 
     # Getteur
 

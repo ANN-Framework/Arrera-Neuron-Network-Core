@@ -147,11 +147,6 @@ class IARouter:
         return text
 
     def __prefilter_projet(self, requette: str):
-        """
-        Garde-fou PROJET : détecte les actions projet par mots-clés
-        pour bypasser le LLM qui confond souvent les actions.
-        Retourne (args_list, val_out) ou None si pas de match.
-        """
         req = requette.lower().strip()
 
         # Mots-clés pour détecter les actions projet
@@ -202,6 +197,22 @@ class IARouter:
         for mot in mots_lister:
             if mot in req:
                 return (["projet_lister"], 1)
+
+        # 5. Ouvrir un fichier dans Arrera Markdown (ou le fichier .amd du projet)
+        mots_ouvrir_md = [
+            "ouvre le fichier arrera markdown", "ouvrir le fichier arrera markdown",
+            "ouvre le markdown du projet", "ouvrir le markdown du projet",
+            "ouvre l'arrera markdown du projet", "ouvrir l'arrera markdown du projet",
+            "ouvre arrera markdown du projet", "ouvrir arrera markdown du projet",
+            "ouvre dans arrera markdown", "ouvrir dans arrera markdown"
+        ]
+        for mot in mots_ouvrir_md:
+            if mot in req:
+                cible = req.split(mot, 1)[1].strip()
+                for residu in ["du projet", "s'il te plait", "stp", "s'il te plaît", "please", "svp",
+                               "le fichier"]:
+                    cible = cible.replace(residu, "").strip()
+                return (["markdown_ouvrir_fichier", cible], 7)
 
         return None
 
@@ -384,7 +395,7 @@ class IARouter:
 
         # 4. Rattrapage des sous-actions inventées comme action principale
         if action not in self.__dispatch:
-            if action.startswith("projet_") or action.startswith("tableur_") or action.startswith("word_"):
+            if action.startswith("projet_") or action.startswith("tableur_") or action.startswith("word_") or action.startswith("markdown_"):
                 args.insert(0, action)
                 action = "work"
             elif action.startswith("git_") or action.startswith("doc_") or action.startswith("github_") or action in [
@@ -985,8 +996,13 @@ class IARouter:
             return f"État du projet: {'Ouvert' if etat else 'Fermé'}", 5
 
         elif type_action == "projet_creer_fichier":
-            fnc.createFileProject(param1, param2)
-            return f"Fichier '{param1}' avec extension '{param2}' créé dans le projet.", 16
+            if fnc.createFileProject(param1, param2):
+                return f"Fichier '{param1}' (type '{param2}') créé avec succès dans le projet.", 16
+            return f"Impossible de créer le fichier '{param1}' (vérifiez qu'un projet est ouvert).", 1
+
+        elif type_action in ("markdown_ouvrir_fichier", "projet_ouvrir_markdown", "arrera_markdown_ouvrir"):
+            succes, msg = fnc.openFileArreraMarkdown(param1)
+            return msg, (7 if succes else 1)
 
         elif type_action == "projet_lister_fichiers":
             fnc.setlistFileProject()
