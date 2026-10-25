@@ -1,62 +1,61 @@
-# System Dependencies
+# System & Python Dependencies (`ann-core` v4.0)
 
-To run ArreraNeuronNetwork, you need to install some system-level dependencies depending on your operating system.
+`ArreraNeuronNetwork` (`ann-core`) requires **Python 3.14 exclusively** and is 100% Headless (zero GUI dependencies such as Tkinter or GTK).
+
+Depending on your operating system, install the following system-level dependencies for audio (`sounddevice` / `piper-tts`), media playback (`python-vlc` / `yt-dlp`), clipboard (`pyperclip`), and OS notifications/services.
 
 ## Linux
 
 ### Debian / Ubuntu / Mint
 ```bash
 sudo apt-get update
-sudo apt-get install xclip xsel vlc python3-tk portaudio19-dev espeak ffmpeg
+sudo apt-get install python3.14 python3.14-dev xclip xsel vlc libportaudio2 portaudio19-dev libsndfile1 ffmpeg git
 ```
 
 ### Fedora
 ```bash
-sudo dnf install xclip xsel vlc python3-tkinter portaudio-devel espeak-ng ffmpeg
+sudo dnf install python3.14 python3.14-devel xclip xsel vlc portaudio portaudio-devel libsndfile ffmpeg git
 ```
 
 ### Arch Linux
 ```bash
-sudo pacman -S xclip xsel vlc tk portaudio espeak-ng ffmpeg
+sudo pacman -S python xclip xsel vlc portaudio libsndfile ffmpeg git
 ```
 
 ## macOS
 
-You may need [Homebrew](https://brew.sh/) to install some dependencies.
+Using [Homebrew](https://brew.sh/):
 
-1.  **VLC Media Player**: Install it from the [official website](https://www.videolan.org/vlc/download-macosx.html) or via cask:
-    ```bash
-    brew install --cask vlc
-    ```
-2.  **PortAudio** (required for microphone access):
-    ```bash
-    brew install portaudio
-    ```
-3.  **FFmpeg** (recommended for media handling):
-    ```bash
-    brew install ffmpeg
-    ```
-4.  **Tkinter**: Usually included with Python, but if missing:
-    ```bash
-    brew install python-tk
-    ```
+1. **Python 3.14**:
+   ```bash
+   brew install python@3.14
+   ```
+2. **VLC Media Player** (required for `python-vlc` radio/audio playback):
+   ```bash
+   brew install --cask vlc
+   ```
+3. **PortAudio & libsndfile** (required for `sounddevice` / `soundfile` / `piper-tts`):
+   ```bash
+   brew install portaudio libsndfile
+   ```
+4. **FFmpeg** (required for media and `yt-dlp` processing):
+   ```bash
+   brew install ffmpeg
+   ```
 
 ## Windows
 
-1.  **VLC Media Player**: Download and install from the [official website](https://www.videolan.org/vlc/download-windows.html).
-    *Note: Ensure the bitness (32-bit or 64-bit) of VLC matches your Python installation.*
-2.  **FFmpeg**: Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add it to your System PATH.
-3.  **C++ Build Tools**: May be required for compiling some Python packages (like `llama-cpp-python` or `pyaudio` if wheels are missing). You can install the "Desktop development with C++" workload via Visual Studio Build Tools.
+1. **Python 3.14 (64-bit)**: Install from [python.org](https://www.python.org/downloads/).
+2. **VLC Media Player (64-bit)**: Download and install from [videolan.org](https://www.videolan.org/vlc/download-windows.html).
+3. **FFmpeg**: Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add it to your System `PATH`.
+4. **C++ Build Tools**: Visual Studio Build Tools ("Desktop development with C++") may be required if prebuilt wheels for `llama-cpp-python` are not available for your architecture.
 
 ## Python Dependencies
 
-After installing system dependencies, install the Python requirements:
+Install `ann-core` in editable mode (or via `requirements.txt`):
 
 ```bash
+pip install -e .
+# or
 pip install -r requirements.txt
-```
-
-*Note: `PyAudio` (required for microphone) is not always automatically installed or may fail if PortAudio is missing. If you encounter issues, try installing it manually after installing the system dependencies:*
-```bash
-pip install pyaudio
 ```

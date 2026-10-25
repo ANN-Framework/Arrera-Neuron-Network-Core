@@ -1,131 +1,108 @@
-# ArreraNeuronNetwork Project Architecture
+# ArreraNeuronNetwork (`ann-core` v4.0) Project Architecture
 
-This document describes the file and folder organization of the ArreraNeuronNetwork project.
+This document describes the file and folder organization of the **ArreraNeuronNetwork (`ann-core`)** project in Version 4.0 (100% Headless core engine, decoupled from GUI frontends via `IGestGui`).
 
 ## Directories
 
-### asset/
-Contains static resources (images, sounds).
-- `calendar/`: Images for the calendar.
-- `horloge/`: Images and sounds (bip.mp3) for the clock, stopwatch, and timer.
-- `meteo/`: Icons for weather conditions.
-- `tache/`: Icons for task management.
-- `theme/`: Contains the Arrera Tk V2 theme file
-- `work/`: Icons for the workspace (projects, spreadsheet, word processing).
+### `asset/`
+Contains core static resources (icon and audio cues):
+- `icon.png`: Default assistant icon.
+- `horloge/bip.mp3`: Sound effect for timer/alarm notifications.
+- `sound/micro.mp3`: Sound effect for voice assistant microphone activation.
 
-### brain/
-- `brain.py`: Likely contains the central logic or "brain" of the assistant.
+### `brain/`
+- `brain.py`: Central controller (`ABrain`) orchestrating boot, shutdown, background notifications, socket messages, and request routing between `core_neuron` and `IARouter`.
 
-### config/
-Configuration files.
-- `confNeuron.py`: Neuron configuration.
-- `listFete.json`: Database of holidays/celebrations.
-- `tiger_demon.py`: Module that manages whether the personal assistant needs an update (Only works for Arrera applications)
+### `config/`
+Configuration and update modules:
+- `confNeuron.py`: Assistant configuration dataclass (`confNeuron`), including feature flags and `ia_os_directory` (`/arrera/ia_model` shared Linux mode).
+- `listFete.json`: Database of holidays and name days.
+- `tiger_demon.py`: Update checker module for Arrera applications and assistants.
 
-### fnc/ (Functions)
-Modules implementing the various functionalities of the assistant.
-- `fncBase.py`: Base class for functions.
-- `fonctionActu.py`: News management.
-- `fonctionArreraDownload.py`: Download management.
-- `fonctionArreraWork.py`: Work-related functionalities (office tools).
-- `fonctionBreef.py`: Summaries or briefs.
-- `fonctionCalculatrice.py`: Calculator logic.
-- `fonctionCalendar.py`: Calendar management.
-- `fonctionCodeHelp.py`: Coding/development helper.
-- `fonctionGPS.py`: Location and GPS.
-- `fonctionHorloge.py`: Time management, alarms, timer.
-- `fonctionLecture.py`: Text-to-speech or text reading.
-- `fonctionMeteo.py`: Weather forecasts.
-- `fonctionOPEN.py`: Opening files or programs.
-- `fonctionOrthographe.py`: Spelling correction.
-- `fonctionRadio.py`: Radio player.
-- `fonctionRecherche.py`: Internet search.
-- `fonctionTache.py`: Task manager (To-Do).
+### `fnc/` (Functions)
+Business logic modules implementing the assistant's capabilities (zero GUI dependencies):
+- `fncBase.py`: Base class for all function modules.
+- `fncMail.py`: Email reading, AI-assisted drafting, correction, and reply logic.
+- `fonctionActu.py`: RSS/news feed fetching and summaries.
+- `fonctionArreraDownload.py`: Video/audio download logic (`yt-dlp`).
+- `fonctionArreraWork.py`: Project management, Word/Excel manipulation, and AI Code Agent file generation.
+- `fonctionBrief.py`: Morning/daily brief aggregation (weather, news, tasks).
+- `fonctionCalculatrice.py`: Mathematical calculation engine.
+- `fonctionCalendar.py`: Agenda and calendar event management.
+- `fonctionCodeHelp.py`: Developer tools and Git operations (`status`, `commit`, `push`, `branch`, `log`).
+- `fonctionGPS.py`: Geolocation and Google Maps route generation.
+- `fonctionHorloge.py`: Timer, stopwatch, and alarm management.
+- `fonctionLecture.py`: Text reading preparation.
+- `fonctionMeteo.py`: Weather and temperature forecasts (`meteofrance-api`).
+- `fonctionOPEN.py`: Launching user software, system apps, and websites.
+- `fonctionOrthographe.py`: AI-assisted spelling correction.
+- `fonctionRadio.py`: Internet radio streaming (`pyradios` + `python-vlc`).
+- `fonctionRecherche.py`: Web search engine queries.
+- `fonctionTache.py`: Global and project To-Do task management.
 - `fonctionTraduction.py`: Text translation.
 
-### gestionnaire/ (Managers)
-Management modules and coordinators.
-- `gestion.py`: Global manager.
-- `gestFNC.py`: Function manager.
-- `HeadlessGuiManager.py`: GUI manager.
-- `gestHistorique.py`: Interaction history management.
-- `gestIA.py`: Artificial Intelligence management.
-- `gestKeyword.py`: Keyword management for recognition.
-- `gestLangue.py`: Language management.
-- `gestNeuron.py`: Neural network management.
-- `gestSocket.py`: Network/socket connection management.
-- `gestSTR.py`: String processing utilities.
-- `gestUserSetting.py`: User settings management.
+### `gestionnaire/` (Managers)
+Coordinators and state managers:
+- `gestion.py`: Central service locator (`gestionnaire`) instantiating all managers.
+- `IGestGui.py`: Abstract interface (`IGestGui`) defining the contract between `ann-core` and external GUI frontends (such as `ann-tkinter`).
+- `HeadlessGuiManager.py`: Default no-op/CLI implementation of `IGestGui` for headless execution.
+- `gestFNC.py`: Function registry and dispatcher.
+- `gestHistorique.py`: Interaction history manager.
+- `gestIA.py`: Local GGUF AI manager (worker thread, lazy loading, auto-unload RAM after idle, 0ms Python pre-classifier, Passe 0 / Passe 1 / Passe 2 orchestration, and model catalog/hardware recommendation delegation).
+- `gestKeyword.py`: Keyword loader for socket/interface commands.
+- `gestLangue.py`: Language and personality phrase manager.
+- `gestMemoire.py`: Long-term user memory manager (with AI deduplication).
+- `gestNeuron.py`: Instantiates `core_neuron`, `IARouter`, `interface`, and `neuroneMarkdown`.
+- `gestSession.py`: Short-term conversation context manager.
+- `gestSocket.py`: WebSocket client/server manager.
+- `gestSTR.py`: String cleaning and normalization utilities.
+- `gestUserSetting.py`: User configuration manager (`user.json`, software/site lists, AI model selection, hardware recommendation, and custom GGUF download).
 
-### gui/ (Graphical User Interface)
-Code related to the user interface (windows, widgets).
-- `guibase.py`: Base class for windows.
-- `GUIAgenda.py`: Window interface for the agenda/calendar, showing events and dates.
-- `GUIArreraDownload.py`: Window interface for the Arrera video/audio download tool (YouTube downloader).
-- `GUIArreraWork.py`: Main window interface for the Arrera Work environment (project management, spreadsheet, word).
-- `GUIBaseTache.py`: Base GUI components/templates for task management features.
-- `GUICalculatrice.py`: Window interface for the calculator (standard, complex, and Pythagoras modes).
-- `GUIHelp.py`: Window interface displaying help and documentation about the assistant.
-- `GUIHorloge.py`: Window interface for the clock, stopwatch, and timer functionalities.
-- `GUILecture.py`: Window interface for the text-to-speech reading feature.
-- `GUIorthographe.py`: Window interface for the spelling correction tool.
-- `GUITache.py`: Window interface for displaying and managing the main To-Do list.
-- `GUITaskProject.py`: Window interface for managing tasks specific to an Arrera Work project.
-- `GUITraducteur.py`: Window interface for the translation tool.
-- `GUIView.py`: General purpose view window for displaying generic results or web searches.
-- `GUIViewBreef.py`: Window interface for displaying the daily brief (news, weather, tasks).
-- `GUIViewResumer.py`: Window interface for displaying concise summaries.
-- `codehelp/CCHguiBase.py`: Base GUI class for CodeHelp module windows.
-- `codehelp/CCHcolorSelector.py`: Window interface for the developer color selector tool.
-- `codehelp/CHGithub.py`: Window interface for the GitHub project management tool.
-- `codehelp/CHLibrairy.py`: Window interface for the project library browser.
-- `codehelp/CHOrgraVarriable.py`: Window interface for the variable organizer tool.
+### `instruction_ia/`
+System prompts used by specialized AI tasks in `gestIA.py`:
+- `prompt_dedoublonnage.txt`: Deduplication prompt for long-term user memory.
+- `prompt_mail_correction.txt`: Prompt for correcting email drafts.
+- `prompt_mail_creation.txt`: Prompt for writing new emails.
+- `prompt_mail_reponse.txt`: Prompt for generating email replies.
+- `prompt_orthographe.txt`: Prompt for spelling and grammar correction.
 
-### instruction_ia/
-Contains AI prompts and instructions files.
-- `help_agenda_taches.txt`: Instructions for managing agenda and tasks.
-- `help_arrera_work.txt`: Instructions regarding the usage of Arrera Work.
-- `help_dev_recherche.txt`: Instructions detailing development and internet search features.
-- `help_gps.txt`: Instructions concerning GPS functionalities and directions.
-- `help_infos_meteo.txt`: Instructions for fetching and interpreting weather information.
-- `help_medias_apps.txt`: Instructions for media control and opening applications.
-- `prompt_main.txt`: The primary or base prompt initializing the assistant's AI personality and behavior.
-- `prompt_orthographe.txt`: Instructions specifically dedicated to the spelling correction functionality.
+### `keyword/`
+- `interface.json`: Trigger keywords for external Arrera socket/interface commands.
 
-### keyword/
-JSON files defining trigger keywords.
-- `api.json`, `codehelp.json`, `interface.json`, `open.json`, `search.json`, `service.json`, `time.json`, `utils.json`, `work.json`.
+### `language/`
+Linguistic configuration files divided into two address modes:
+- `tutoiment/`: Informal French ("tu") — `formule.json`, `personnalite.json`.
+- `vouvoiment/`: Formal French ("vous") — `formule.json`, `personnalite.json`.
 
-### language/
-Linguistic configuration files (responses, standard phrases).
-Divided into two modes:
-- `tutoiment/`: Configuration for informal address ("tu").
-- `vouvoiment/`: Configuration for formal address ("vous").
-Each folder contains JSON files like `chatbot.json`, `formule.json`, `interface.json`, `markdown.json`, etc.
+### `librairy/`
+Low-level libraries and OS utilities:
+- `ArreraIALoad.py`: `llama-cpp-python` wrapper with GGUF loading, lazy state tracking, and multi-OS native RAM reclamation (`malloc_trim`, `SetProcessWorkingSetSize`, `libSystem.dylib`).
+- `arrera_date.py`: Date and time helper utilities.
+- `arrera_voice.py`: Offline TTS (`piper-tts`) and STT (`speechRecognition` + `sounddevice`) engine.
+- `dectectionOS.py`: Multi-OS detection (Linux, Windows, macOS).
+- `model_downloader.py`: Official 9-model GGUF catalog (Gemma 4, Mistral, Qwen 2.5), multi-OS hardware detection & model recommendation, custom direct-link `.gguf` downloader (with Magic Bytes & disk space validation), and `/arrera/ia_model` shared Linux directory support.
+- `network.py`: Internet connectivity checker.
+- `openSoftware.py`: Cross-platform application launcher.
+- `parreraclient.py` & `PArreraServer.py`: WebSocket client and server for Arrera inter-process communication.
+- `resource_lib.py`: Resource path resolver.
+- `travailJSON.py`: JSON file wrapper.
 
-### librairy/
-Utility libraries and support modules.
-- `ArreraIALoad.py`: AI model loading.
-- `arrera_date.py`: Date utilities.
-- `arrera_tk.py`: Extensions or utilities for Tkinter.
-- `arrera_voice.py`: Voice management (TTS/STT).
-- `dectectionOS.py`: Host OS detection.
-- `model_downloader.py`: External model downloader.
-- `network.py`: Network utilities.
-- `openSoftware.py`: Launching external software.
-- `parreraclient.py`: Client for Arrera services (including WebSocket client).
-- `PArreraServer.py`: WebSocket server for Arrera network communication.
-- `resource_lib.py`: Resources location manager (especially for macOS).
-- `travailJSON.py`: JSON read/write utilities.
+### `neuron/`
+Request routing and processing layer:
+- `CNeuronBase.py`: Base class for neurons.
+- `core_neuron.py`: Fast-track deterministic execution for immediate commands (time, weather, temperature, news, radio, timer, GUI triggers).
+- `IARouter.py`: Tool-calling JSON router mapping natural language requests to the 21 assistant tool categories (`action_type` / `parameters`).
+- `interface.py`: Socket command handler for Arrera interface modes.
+- `markdown.py`: Socket handler for the external Arrera Markdown editor.
 
-### neuron/
-"Neural" logic for request processing.
-- `CNeuronBase.py`: Base class.
-- `API.py`, `chatBots.py`, `codehelp.py`, `interface.py`, `markdown.py`, `open.py`, `search.py`, `service.py`, `time.py`, `work.py`: Domain-specific processing modules. (Note: `markdown.py` added to manage markdown processing and Arrera Markdown).
+### `objet/`
+Domain objects manipulated by `fnc/` modules:
+- `arreradocument.py`: Word/ODT document wrapper.
+- `arreratableur.py`: Excel spreadsheet wrapper.
+- `CArreraDownload.py`: Media downloader object (`yt-dlp`).
+- `CHGit.py`: Git repository wrapper (`GitPython` / CLI).
+- `CHsearchDoc.py`: Developer documentation search helper.
 
-### objet/
-Business objects and class definitions.
-- `CArreraDownload.py`: Download object.
-- `CHsearchDoc.py`: Documentation search.
-- `arreradocument.py`: Document management.
-- `arreratableur.py`: Spreadsheet management.
+### `src/` & `test_file/`
+- `src/opale.py`: CLI entry point for the Opale assistant.
+- `test_file/`: Interactive and automated test suites (`test-hallucination.py`, `test-user-setting.py`, `test-fnc.py`, `test-voice.py`, `test_connection_server.py`, `test_tiger_demon.py`).

@@ -7,7 +7,7 @@ name = "ann-core"
 version = "4.0.0"
 description = "Moteur logique et IA d'Arrera Neuron Network (Headless Core)"
 readme = "readme.md"
-requires-python = ">=3.11"
+requires-python = "==3.14.*"
 authors = [
     { name = "Arrera Software" }
 ]
