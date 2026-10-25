@@ -115,3 +115,23 @@ class fncCodehelp(fncBase):
         if not cible:
             return "Aucun dossier ou projet actif spécifié pour Git."
         return self.__git.getLastLogs(cible)
+
+    def gitBranches(self, path: str = "") -> str:
+        cible = self.__get_target_path(path)
+        if not cible:
+            return "Aucun dossier ou projet actif spécifié pour Git."
+        return self.__git.getBranches(cible)
+
+    def gitCreateBranch(self, branch_name: str, path: str = "") -> tuple[bool, str]:
+        cible = self.__get_target_path(path)
+        if not cible:
+            return False, "Aucun dossier ou projet actif spécifié pour Git."
+        succes = self.__git.createBranch(cible, branch_name)
+        return succes, self.__git.getLastOutput()
+
+    def gitSwitchBranch(self, branch_name: str, path: str = "") -> tuple[bool, str]:
+        cible = self.__get_target_path(path)
+        if not cible:
+            return False, "Aucun dossier ou projet actif spécifié pour Git."
+        succes = self.__git.switchBranch(cible, branch_name)
+        return succes, self.__git.getLastOutput()

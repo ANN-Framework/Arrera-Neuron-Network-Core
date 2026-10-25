@@ -1412,6 +1412,9 @@ class IARouter:
             "git_add": lambda: fnc.gitAdd(),
             "git_commit": lambda: fnc.gitCommit(param1),
             "git_log": lambda: fnc.gitLog(),
+            "git_branches": lambda: fnc.gitBranches(),
+            "git_create_branch": lambda: fnc.gitCreateBranch(param1),
+            "git_switch_branch": lambda: fnc.gitSwitchBranch(param1),
         }
 
         action = codehelp_actions.get(type_action)

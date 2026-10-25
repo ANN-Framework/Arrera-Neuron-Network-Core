@@ -133,3 +133,45 @@ class CHGit:
             return res.stdout.strip() or "Aucun commit."
         except Exception as e:
             return f"Erreur log Git : {e}"
+
+    def createBranch(self, repo_path: str, branch_name: str) -> bool:
+        if not self.isGitRepo(repo_path):
+            self.__lastOutput = "Ce dossier n'est pas un dépôt Git."
+            return False
+        if not branch_name.strip():
+            self.__lastOutput = "Le nom de la branche ne peut pas être vide."
+            return False
+        try:
+            res = subprocess.run(
+                ["git", "checkout", "-b", branch_name.strip()],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            self.__lastOutput = res.stdout.strip() or res.stderr.strip()
+            return res.returncode == 0
+        except Exception as e:
+            self.__lastOutput = f"Erreur création branche Git : {e}"
+            return False
+
+    def switchBranch(self, repo_path: str, branch_name: str) -> bool:
+        if not self.isGitRepo(repo_path):
+            self.__lastOutput = "Ce dossier n'est pas un dépôt Git."
+            return False
+        if not branch_name.strip():
+            self.__lastOutput = "Le nom de la branche ne peut pas être vide."
+            return False
+        try:
+            res = subprocess.run(
+                ["git", "checkout", branch_name.strip()],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            self.__lastOutput = res.stdout.strip() or res.stderr.strip()
+            return res.returncode == 0
+        except Exception as e:
+            self.__lastOutput = f"Erreur changement de branche Git : {e}"
+            return False
