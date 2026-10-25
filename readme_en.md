@@ -33,8 +33,6 @@ The Arrera Neuron Network assistant (Version 4.0) is powered by a hybrid local G
 
 [View project architecture](./markdown/ARCHITECTURE.md)
 
-[View Modular Headless Architecture (v4.0)](./markdown/ARCHITECTURE_MODULAIRE_ANN.md)
-
 # Project Dependencies
 
 [View project dependencies](./markdown/dependency.md)

@@ -34,8 +34,6 @@ L'assistant Arrera Neuron Network (Version 4.0) repose sur une architecture hybr
 
 [Voir l'architecture du projet](./markdown/ARCHITECTURE.md)
 
-[Voir l'architecture modulaire Headless (v4.0)](./markdown/ARCHITECTURE_MODULAIRE_ANN.md)
-
 # Dépendance du projet 
 
 [Voir les dépendances du projet](./markdown/dependency.md)
