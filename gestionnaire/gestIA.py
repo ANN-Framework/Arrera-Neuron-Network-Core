@@ -421,8 +421,15 @@ class gestIA :
                 articles_json = articles_json[:10000] + '...}]'
 
             request_text = f"{content}\n\n{articles_json}"
+
+            # Grand contexte direct (8192) et max_tokens suffisant pour le JSON complet
             raw_reponse = self.__ia_loader.send_request(
-                request_text, False, True, max_tokens=512, use_system_context=False
+                request_text,
+                consigne_langue=False,
+                as_json=True,
+                max_tokens=2048,
+                use_system_context=False,
+                min_ctx=8192
             )
 
             start_idx = raw_reponse.find('[')
@@ -438,6 +445,14 @@ class gestIA :
 
         except Exception as e:
             print(f"Erreur lors du dédoublonnage par l'IA : {e}")
+
+        finally:
+            # Rétablissement du petit contexte par défaut (3072) pour libérer la RAM
+            try:
+                if self.__ia_loader is not None and self.__ia_loader.get_current_ctx() > 3072:
+                    self.__ia_loader.ensure_ctx(3072)
+            except Exception:
+                pass
 
         self.__model_reponse_ok = False
         return articles

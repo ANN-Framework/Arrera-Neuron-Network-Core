@@ -6,6 +6,9 @@ from librairy.dectectionOS import OS
 
 
 class ArreraIALoad:
+    DEFAULT_CTX = 3072
+    LARGE_CTX = 8192
+
     def __init__(self):
         self.__model_type = None
         self.__model = None
@@ -15,6 +18,8 @@ class ArreraIALoad:
         self.__system_context_is_loaded = False
         self.__system_instructions = []
         self.__os = OS()
+        self.__model_path = None
+        self.__current_n_ctx = self.DEFAULT_CTX
 
     # Methode private
     def __release_os_memory(self):
@@ -29,6 +34,21 @@ class ArreraIALoad:
         except Exception:
             pass
 
+    def ensure_ctx(self, target_ctx: int = DEFAULT_CTX) -> bool:
+        """
+        Vérifie si le modèle est chargé avec la taille de contexte demandée.
+        Si ce n'est pas le cas, recharge le modèle avec target_ctx en conservant les instructions système.
+        """
+        if self.__model is not None and self.__current_n_ctx == target_ctx:
+            return True
+
+        if self.__model_path and os.path.exists(self.__model_path):
+            return self.load_model_gguf(self.__model_path, n_ctx=target_ctx)
+        return False
+
+    def get_current_ctx(self) -> int:
+        return self.__current_n_ctx
+
     def __predict_gguf_model(
         self,
         prompt: str,
@@ -36,7 +56,12 @@ class ArreraIALoad:
         enable_consigne_langue: bool = True,
         as_json: bool = True,
         use_system_context: bool = True,
+        min_ctx: int = DEFAULT_CTX,
     ):
+        # 1. Vérifie ou bascule sur le contexte minimal demandé
+        if self.__current_n_ctx < min_ctx:
+            self.ensure_ctx(min_ctx)
+
         if enable_consigne_langue:
             consigne_langue = "\n\n(Réponds impérativement en français, même si je parle anglais ou technique)."
         else:
@@ -81,6 +106,25 @@ class ArreraIALoad:
 
         try:
             output = self.__model.create_chat_completion(**kwargs)
+        except ValueError as e:
+            # Sécurité automatique : Dépassement de contexte détecté -> bascule dynamique vers LARGE_CTX
+            err_msg = str(e).lower()
+            if "exceed context window" in err_msg and self.__current_n_ctx < self.LARGE_CTX:
+                print(f"[ArreraIALoad] Contexte dépassé ({self.__current_n_ctx}). Bascule automatique vers {self.LARGE_CTX} tokens...")
+                self.ensure_ctx(self.LARGE_CTX)
+                output = self.__model.create_chat_completion(**kwargs)
+            else:
+                # Tentative avec fallback_messages
+                try:
+                    kwargs["messages"] = fallback_messages
+                    output = self.__model.create_chat_completion(**kwargs)
+                except ValueError as e_fallback:
+                    if "exceed context window" in str(e_fallback).lower() and self.__current_n_ctx < self.LARGE_CTX:
+                        print(f"[ArreraIALoad] Contexte dépassé sur fallback. Bascule automatique vers {self.LARGE_CTX} tokens...")
+                        self.ensure_ctx(self.LARGE_CTX)
+                        output = self.__model.create_chat_completion(**kwargs)
+                    else:
+                        raise e_fallback
         except Exception:
             kwargs["messages"] = fallback_messages
             output = self.__model.create_chat_completion(**kwargs)
@@ -131,10 +175,16 @@ class ArreraIALoad:
         if not keep_instructions:
             self.__system_context_is_loaded = False
             self.__system_instructions = []
+            self.__model_path = None
+            self.__current_n_ctx = self.DEFAULT_CTX
 
-    def load_model_gguf(self, model_path: str, n_ctx: int = 3072):
+    def load_model_gguf(self, model_path: str, n_ctx: int = DEFAULT_CTX):
         if not os.path.exists(model_path):
             raise ValueError(f"Le fichier modèle n'existe pas : {model_path}")
+
+        # Conserve le chemin du modèle actif
+        self.__model_path = model_path
+        self.__current_n_ctx = n_ctx
 
         # Si un modèle est déjà chargé, le désinstancier d'abord en conservant les instructions
         if self.__is_loaded or self.__model is not None:
@@ -170,5 +220,8 @@ class ArreraIALoad:
         as_json: bool = True,
         max_tokens: int = 512,
         use_system_context: bool = True,
+        min_ctx: int = DEFAULT_CTX,
     ):
-        return self.__predict_gguf_model(sentence, max_tokens, consigne_langue, as_json, use_system_context)
+        return self.__predict_gguf_model(
+            sentence, max_tokens, consigne_langue, as_json, use_system_context, min_ctx
+        )
