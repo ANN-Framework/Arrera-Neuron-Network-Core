@@ -1,39 +1,79 @@
-# ℹ️ À propos du projet Arrera Neuron Network
+# ℹ️ À propos du projet Arrera Neuron Network (`ann-core`)
 
 ![Baniere Arrera Neuron Network](https://raw.githubusercontent.com/Arrera-Software/ArreraNeuronNetwork/refs/heads/Version-3/asset/baniere.png)
 
-Projet qui a pour but de créer la base permettant de développer des assistants personnels en **Python 3.14 uniquement** (Architecture modulaire Headless `ann-core` découplée de l'interface graphique).
+Moteur logique, neuronal et vocal pour développer des assistants personnels intelligents en **Python 3.14 uniquement**.
 
-[Readme in english](./readme_en.md) 
+Version 4.0 : **Architecture 100 % Headless**, entièrement découplée de toute interface graphique et pilotable en mode autonome (CLI / Serveur) ou connectable à n'importe quel frontend via le contrat `IGestGui`.
 
-## Fonctionnalités
+*Pour l'interface graphique officielle Tkinter / CustomTkinter, consultez le projet dédié :*  
+👉 **[`ann-tkinter`](https://github.com/ANN-Framework/Arrera-Neuron-Network-Tkinter)**
 
-L'assistant Arrera Neuron Network (Version 4.0) repose sur une architecture hybride pilotée par un moteur IA local GGUF (`core_neuron` + `IARouter`) pour répondre en langage naturel à diverses requêtes :
-*   **Intelligence Artificielle Locale (GGUF)** : Routage intelligent (`IARouter`), pré-filtrage rapide (`core_neuron`), chargement à la demande (*Lazy Loading*) et libération automatique de la RAM après inactivité.
-*   **Gestion des modèles IA** : Catalogue intégré (Gemma 4, Mistral, Qwen 2.5), recommandation automatique selon le matériel (RAM, VRAM GPU, CPU), téléchargement de modèles personnalisés par lien direct `.gguf` et support d'un dossier partagé OS sous Linux (`/arrera/ia_model`).
-*   **Mémoire & Session** : Mémorisation persistante des informations utilisateur (`gestMemoire`) et suivi du contexte de conversation (`gestSession`).
-*   **Météo & Température** : Donne la météo et la température actuelles ou les prévisions (domicile, travail ou localisation actuelle).
-*   **Résumé (Brief)** : Fournit un résumé des actualités, de la météo et des tâches (brief du matin ou résumé à la demande).
-*   **GPS** : Donne les coordonnées géographiques actuelles et permet de lancer un itinéraire Google Maps (point de départ et d'arrivée).
-*   **Actualités** : Donne les dernières actualités (générales, tech, etc.).
-*   **Traduction** : Traduction de texte et ouverture de l'outil de traduction.
-*   **Ouverture de logiciels & sites web** : Ouvre des logiciels configurés par l'utilisateur, des applications système ou des sites web enregistrés (YouTube, YouTube Music, etc.).
-*   **Radio** : Lance des stations de radio (Europe 1, France Info, NRJ, Skyrock, etc.) ou arrête la radio.
-*   **Outils Arrera** : Ouvre des outils internes comme le téléchargeur vidéo (`Arrera Download`) ou les modes de calculatrice (complexe, Pythagore).
-*   **Heure, Date & Outils de temps** : Donne l'heure/la date actuelle et gère le chronomètre, l'horloge ou le minuteur.
-*   **Agenda & Tâches** : Gestion complète du calendrier et de la liste des tâches (ajout, suppression, marquage comme terminé, consultation).
-*   **Recherche Internet** : Effectue des recherches simples ou approfondies sur le moteur de recherche configuré.
-*   **Calculs, Lecture & Orthographe** : Calculs mathématiques, synthèse vocale hors-ligne (`piper-tts`) et correction orthographique assistée par IA.
-*   **Emails** : Rédaction, correction et réponse aux e-mails assistées par l'IA (`fncMail`).
-*   **Arrera Work (Projets, Tableur & Traitement de texte)** : Création et gestion de projets, édition de fichiers Word/Excel (somme, moyenne, min, max) et **mode Agent de code** avec génération de fichiers par IA.
-*   **Outils de développement & Git (`CodeHelp`)** : Recherche de documentation (DevDocs, Microsoft, Python, GitHub), organisateur de variables, sélecteur de couleurs et intégration des commandes Git (`status`, `commit`, `push`, `branch`, `log`).
-*   **Modes d'affichage & Réseau** : Activation des modes d'interface (mode 1 à 6) et serveur/client WebSocket pour interagir avec des services externes et "Arrera Markdown".
-*   **Fermeture** : Gère la fermeture de l'assistant ou des modes.
+[Readme in english](./readme_en.md) | [Guide d'Intégration](./markdown/INTEGRATION.md) | [Architecture](./markdown/ARCHITECTURE.md)
 
-# Architecture 
+---
 
-[Voir l'architecture du projet](./markdown/ARCHITECTURE.md)
+## 🚀 Deux Modes d'Exécution
 
-# Dépendance du projet 
+1. **Mode Headless (Console / Serveur)** :
+   Le moteur s'exécute sans aucune interface graphique (`HeadlessGuiManager`). Les requêtes (météo, actualités, tâches, agenda, etc.) sont traitées et restituées textuellement ou vocalement.
+2. **Mode Graphique (Frontend externe)** :
+   Un frontend (tel que [`ann-tkinter`](https://github.com/ANN-Framework/Arrera-Neuron-Network-Tkinter)) injecte son propre gestionnaire d'affichage via `gest.set_gui_manager(mon_gui)`. Le cerveau IA active automatiquement les outils visuels et délègue l'affichage des fenêtres spécialisées au frontend.
 
-[Voir les dépendances du projet](./markdown/dependency.md)
+---
+
+## 🧠 Fonctionnalités du Moteur Core
+
+Arrera Neuron Network repose sur un moteur hybride combinant des neurones déterministes ultra-rapides (`core_neuron`) et un routeur IA local GGUF (`IARouter`) :
+
+* **Intelligence Artificielle Locale (GGUF)** : Routage d'intentions (`IARouter`), pré-filtrage à 0 ms (`core_neuron`), chargement à la demande (*Lazy Loading*) et déchargement automatique de la RAM après inactivité avec libération mémoire native multi-OS.
+* **Gestion des modèles IA** : Catalogue officiel (Gemma 4, Mistral, Qwen 2.5), recommandation automatique selon le matériel (RAM, GPU VRAM, CPU), téléchargement direct de modèles `.gguf` et support d'un dossier partagé sous Linux (`/arrera/ia_model`).
+* **Mémoire & Session** : Mémorisation persistante des faits utilisateur avec dédoublonnage IA (`gestMemoire`) et suivi du contexte conversationnel (`gestSession`).
+* **Synthèse et Reconnaissance Vocale** : Synthèse hors-ligne ultra-rapide (`piper-tts`) et reconnaissance vocale (`speechRecognition`), avec signaux sonores système synthétisés directement en mémoire (zéro asset disque requis).
+* **Météo & Température** : Prévisions météorologiques et relevés de température en direct via `meteofrance-api`.
+* **Résumé (Brief)** : Agrégation matinale, d'après-midi ou du soir combinant actualités, météo et tâches planifiées.
+* **GPS & Itinéraires** : Coordonnées géographiques et génération d'itinéraires Google Maps.
+* **Actualités & Flux RSS** : Collecte des flux d'actualités par thématique (généraliste, science, tech, etc.).
+* **Traduction** : Moteur de traduction multi-langues.
+* **Lancement d'Applications & Sites Web** : Gestionnaire universel d'ouverture de logiciels, applications système et URLs configurées.
+* **Radio en Streaming** : Écoute et gestion de stations de radio (`pyradios` + `python-vlc`).
+* **Outils Arrera** : Moteur de calcul complexe/Pythagore et téléchargement multimédia (`yt-dlp`).
+* **Horloge, Chronomètre & Minuteur** : Gestion temporelle complète avec alarmes sonores autonomes.
+* **Agenda & Tâches (To-Do)** : Planification d'événements, suivi des tâches du jour, globales et par projet.
+* **Recherche Web** : Requêtes web simples ou approfondies (*big search*).
+* **Emails Assistés par IA** : Rédaction, correction stylistique et génération de réponses assistées par le modèle local (`fncMail`).
+* **Arrera Work (Projets, Bureautique & Agent de Code)** : Manipulation de documents Word (`.docx`, `.odt`), tableurs Excel (`.xlsx`) et mode **Agent IA** pour générer du code et des architectures de projet.
+* **Outils de Développement & Git (`CodeHelp`)** : Consultation de documentation (Python, DevDocs, Microsoft, GitHub), organisateur de variables, sélecteur de couleurs et commandes Git natives.
+* **Réseau & WebSocket** : Serveur et client WebSocket pour communiquer avec des services externes ou l'éditeur Arrera Markdown.
+
+---
+
+## 📦 Installation & Dépendances
+
+`ann-core` requiert **Python 3.14 exclusivement**.
+
+```bash
+# Cloner le dépôt
+git clone https://github.com/ANN-Framework/Arrera-Neuron-Network-Core.git
+cd Arrera-Neuron-Network-Core
+
+# Installer en mode éditable
+pip install -e .
+```
+
+Pour les dépendances système (PortAudio, libsndfile, VLC, FFmpeg), consultez :  
+👉 **[Dépendances Système du Projet](./markdown/dependency.md)**
+
+---
+
+## 🔌 Intégration dans Votre Application
+
+Pour connecter `ann-core` à votre propre interface graphique ou service :  
+👉 **[Guide d'Intégration Core (`markdown/INTEGRATION.md`)](./markdown/INTEGRATION.md)**
+
+---
+
+## 🏗️ Architecture
+
+Pour le détail complet des dossiers et modules :  
+👉 **[Architecture Détaillée du Projet](./markdown/ARCHITECTURE.md)**

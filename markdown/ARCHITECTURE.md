@@ -4,12 +4,6 @@ This document describes the file and folder organization of the **ArreraNeuronNe
 
 ## Directories
 
-### `asset/`
-Contains core static resources (icon and audio cues):
-- `icon.png`: Default assistant icon.
-- `horloge/bip.mp3`: Sound effect for timer/alarm notifications.
-- `sound/micro.mp3`: Sound effect for voice assistant microphone activation.
-
 ### `brain/`
 - `brain.py`: Central controller (`ABrain`) orchestrating boot, shutdown, background notifications, socket messages, and request routing between `core_neuron` and `IARouter`.
 
@@ -77,6 +71,7 @@ Linguistic configuration files divided into two address modes:
 ### `librairy/`
 Low-level libraries and OS utilities:
 - `ArreraIALoad.py`: `llama-cpp-python` wrapper with GGUF loading, lazy state tracking, and multi-OS native RAM reclamation (`malloc_trim`, `SetProcessWorkingSetSize`, `libSystem.dylib`).
+- `audio_data.py`: In-memory system sound generation (base64 audio streams for microphone and timer bip cues, eliminating static audio file dependencies).
 - `arrera_date.py`: Date and time helper utilities.
 - `arrera_voice.py`: Offline TTS (`piper-tts`) and STT (`speechRecognition` + `sounddevice`) engine.
 - `dectectionOS.py`: Multi-OS detection (Linux, Windows, macOS).

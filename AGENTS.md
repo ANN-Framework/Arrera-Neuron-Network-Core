@@ -50,4 +50,4 @@ Lorsqu'un frontend graphique l'utilise :
   - `python test-fnc.py` : Teste les fonctions métier (`fnc/`).
   - `python test-user-setting.py` : Teste la lecture/écriture des paramètres utilisateur.
   - `python test-voice.py` : Teste la synthèse et la reconnaissance vocale.
-- **Ressources `asset/`** : Seuls les sons système (`asset/sound/micro.mp3`, `asset/horloge/bip.mp3`) et `asset/icon.png` sont conservés dans `ann-core`. Toutes les images d'interface appartiennent au dépôt frontend.
+- **Zéro `asset/`** : `ann-core` ne contient aucun dossier `asset/` ni fichier multimédia statique. Les sons système (bip horloge, son micro) sont synthétisés directement en mémoire via des flux base64 (`librairy/audio_data.py`). Tous les assets graphiques et icônes appartiennent exclusivement au dépôt frontend (`ann-tkinter`).
