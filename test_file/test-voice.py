@@ -6,8 +6,6 @@ import os
 conf = confNeuron(
     name="Opale",
     lang="fr",
-    icon="asset/icon.png",
-    asset="asset/",
     bute="Tester Arrera Voice",
     createur="Pauchet Baptiste",
     listFonction=[],
@@ -146,17 +144,19 @@ def test_trigger_word():
 
 def test_play_file():
     print("\n--- Test Lecture de fichier audio (sounddevice / soundfile) ---")
-    sound_path = "../asset/sound/micro.mp3"
-    custom_path = input(f"Chemin du fichier (Appuyez sur Entrée pour '{sound_path}') : ").strip()
+    custom_path = input("Chemin du fichier (Appuyez sur Entrée pour tester le son micro en mémoire) : ").strip()
     if custom_path:
-        sound_path = custom_path
-
-    if os.path.exists(sound_path):
-        print(f"Lecture du fichier '{sound_path}'...")
-        arr_voice.playFile(sound_path)
-        print("✅ Fin de la lecture.")
+        if os.path.exists(custom_path):
+            print(f"Lecture du fichier '{custom_path}'...")
+            arr_voice.playFile(custom_path)
+            print("✅ Fin de la lecture.")
+        else:
+            print(f"❌ Le fichier '{custom_path}' n'existe pas.")
     else:
-        print(f"❌ Le fichier '{sound_path}' n'existe pas.")
+        from librairy.audio_data import get_micro_sound_stream
+        print("Lecture du son micro intégré en mémoire...")
+        arr_voice.playFile(get_micro_sound_stream())
+        print("✅ Fin de la lecture.")
 
 
 def view_diagnostics():

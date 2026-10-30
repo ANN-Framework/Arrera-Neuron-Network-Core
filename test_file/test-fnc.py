@@ -4,8 +4,6 @@ from config.confNeuron import confNeuron
 
 conf = confNeuron(name="Opale",
                   lang="fr",
-                  icon="asset/icon.png",
-                  asset="asset/",
                   bute="developper un algo de ChatBot qui sera inclut dans SIX et Ryley",
                   createur="Pauchet Baptiste",
                   listFonction=["ouvrir une application", "aider sur les recherches de internet", "donner la meteo",

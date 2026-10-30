@@ -242,7 +242,7 @@ class fncMeteo(fncBase) :
         return self.__description
 
     def getIcon(self):
-        return self._gestionnaire.getConfigFile().asset+"meteo/"+self.__icon+".png"
+        return self.__icon
 
     def getRedAlert(self):
         return self.__redAlert

@@ -5,7 +5,6 @@ Ce module permet d'exécuter l'assistant Opale en mode terminal sans aucune dép
 from config.confNeuron import confNeuron
 from brain.brain import ABrain
 from librairy.dectectionOS import OS
-import sys
 import os
 import time
 import threading
@@ -54,8 +53,6 @@ class Opale:
             self.__config = confNeuron(
                 name="Opale",
                 lang="fr",
-                asset="asset/",
-                icon="asset/icon.png",
                 bute="developper un algo de ChatBot qui sera inclut dans SIX et Ryley",
                 createur="Pauchet Baptiste",
                 listFonction=[
@@ -206,12 +203,3 @@ class Opale:
         except Exception as e:
             print(f"Erreur lors de la sauvegarde du log : {e}")
             return False
-
-
-# Alias de compatibilité
-GUIOpale = Opale
-
-
-if __name__ == "__main__":
-    opale = Opale()
-    opale.active()

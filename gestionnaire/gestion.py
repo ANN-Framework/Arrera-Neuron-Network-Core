@@ -133,9 +133,6 @@ class gestionnaire:
     def getName(self):
         return  self.__config.name
 
-    def getIcon(self):
-        return self.__config.icon
-
     def getGestFNC(self):
         """
         Methode qui retourne l'objet gestFNC

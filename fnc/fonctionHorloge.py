@@ -1,6 +1,7 @@
 import time
 import threading as th
 from fnc.fncBase import fncBase,gestionnaire
+from librairy.audio_data import get_bip_sound_stream
 
 
 class fncHorloge(fncBase):
@@ -85,7 +86,7 @@ class fncHorloge(fncBase):
             remaining_time = self.__durationMinuterie - self.__elapsedTimeMinuteur
             if remaining_time <= 0:
                 self.__runningMinuteur = False
-                self.__arrVoice.playFile(self._gestionnaire.getConfigFile().asset+"horloge/bip.mp3")
+                self.__arrVoice.playFile(get_bip_sound_stream())
                 self.stopMinuteur()
 
     def getStatMinuteur(self):

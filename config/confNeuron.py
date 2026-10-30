@@ -5,8 +5,6 @@ from typing import List
 class confNeuron:
     name: str
     lang: str
-    icon: str
-    asset:str
     bute: str
     createur: str
     listFonction: List[str] = field(default_factory=list)

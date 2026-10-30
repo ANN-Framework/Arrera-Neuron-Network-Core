@@ -1,7 +1,7 @@
-from src.opale import GUIOpale
+from src.opale import Opale
 
 def main():
-    GUIOpale().active()
+    Opale().active()
 
 if __name__ == "__main__":
     main()

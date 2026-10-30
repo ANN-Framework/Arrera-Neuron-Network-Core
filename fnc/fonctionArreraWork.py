@@ -27,7 +27,6 @@ class fncArreraWork(fncBase):
         self.__fileWord = ""
         # Chargement des variable
         self.__nameAssistant = gestionnaire.getConfigFile().name
-        self.__iconAssistant = self._gestionnaire.getConfigFile().icon
         self.__guiColor = "White"
         self.__textColor = "Black"
         # Varriable Projet

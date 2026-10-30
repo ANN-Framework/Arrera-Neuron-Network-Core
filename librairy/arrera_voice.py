@@ -11,6 +11,7 @@ import speech_recognition as sr
 from gestionnaire.gestion import gestionnaire, jsonWork
 from librairy.resource_lib import resource_lib
 from piper.voice import PiperVoice
+from librairy.audio_data import get_micro_sound_stream
 
 
 class CArreraVoice:
@@ -134,7 +135,6 @@ class CArreraVoice:
         return ["tom", "siwis", "google"]
 
     def loadConfig(self):
-        self.__emplacementSoundMicro = self.__gestionnaire.getConfigFile().asset + "sound/micro.mp3"
         sound_val = self.__gestionnaire.getUserConf().getSoundMicro()
         self.__soundMicro = (sound_val in ("1", 1, True))
         self.__listWord = self.__gestionnaire.getUserConf().getListWord()
@@ -208,14 +208,21 @@ class CArreraVoice:
         else:
             return False
 
-    def playFile(self, file: str):
+    def playFile(self, file_or_stream):
+        """
+        Lit un fichier audio depuis un chemin disque (str) ou un flux mémoire (io.BytesIO).
+        """
         try:
-            if os.path.exists(file):
-                data, samplerate = sf.read(file, dtype='int16')
-                sd.play(data, samplerate=samplerate)
-                sd.wait()
+            # Si c'est un chemin de fichier qui n'existe pas, on abandonne
+            if isinstance(file_or_stream, str) and not os.path.exists(file_or_stream):
+                print(f"Fichier introuvable : {file_or_stream}")
+                return
+
+            data, samplerate = sf.read(file_or_stream, dtype='int16')
+            sd.play(data, samplerate=samplerate)
+            sd.wait()
         except Exception as e:
-            print(f"Erreur lecture fichier {file}: {e}")
+            print(f"Erreur lecture audio : {e}")
 
     def stop_listen(self):
         self.__stop_flag = True
@@ -223,7 +230,7 @@ class CArreraVoice:
     def listen(self):
         self.loadConfig()
         if self.__soundMicro:
-            self.playFile(self.__emplacementSoundMicro)
+            self.playFile(get_micro_sound_stream())
 
         r = sr.Recognizer()
         self.__stop_flag = False
