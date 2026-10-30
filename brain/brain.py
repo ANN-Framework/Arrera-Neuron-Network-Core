@@ -324,19 +324,18 @@ class ABrain :
                 else :
                     return False
             elif self.__gestSocket.get_message_is_received_form_client():
-                if self.__gestionnaire.getKeywordObjet().checkInterface(
-                        self.__gestSocket.get_message_form_client(), "requette"):
+                message = self.__gestSocket.get_message_form_client()
+                if self.__gestionnaire.getKeywordObjet().checkInterface(message, "requette"):
                     mots = self.__gestionnaire.getKeywordObjet().getListKeyword("interface", "requette")
-                    message = self.__gestSocket.get_message_form_client().replace(mots[0], "").strip()
-                    self.neuron(message)
+                    message_propre = message.replace(mots[0], "").strip()
+                    self.neuron(message_propre)
                     return True
                 else:
-                    message = self.__gestSocket.get_message_form_client()
-                    self.__gestNeuron.ninterface.neurone(message)
-                    self.__listOut = self.__gestNeuron.ninterface.getListSortie()
-                    self.__valeurOut = self.__gestNeuron.ninterface.getValeurSortie()
-                    return True
-            else :
-                return False
+                    if self.__gestNeuron.ninterface.neurone(message):
+                        self.__listOut = self.__gestNeuron.ninterface.getListSortie()
+                        self.__valeurOut = self.__gestNeuron.ninterface.getValeurSortie()
+                        return True
+                    else:
+                        return False
         else :
             return False
